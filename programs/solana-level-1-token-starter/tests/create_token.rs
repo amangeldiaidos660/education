@@ -6,6 +6,10 @@ use solana_signer::Signer;
 use solana_transaction::Transaction;
 use std::{fs, path::PathBuf};
 
+use anchor_lang::AccountDeserialize;
+use anchor_spl::token_interface::Mint;
+use anchor_lang::solana_program::program_option::COption;
+
 const DECIMALS: u8 = 6;
 
 fn program_bytes() -> Vec<u8> {
@@ -63,6 +67,17 @@ fn creates_token_2022_mint() {
     let mint_account = svm.get_account(&mint.pubkey()).expect("mint must exist");
     assert_eq!(mint_account.owner, token_program);
     assert!(!mint_account.data.is_empty());
+
+    let mint_state = Mint::try_deserialize(&mut mint_account.data.as_slice())
+        .expect("mint data must deserialize");
+
+    assert_eq!(mint_state.decimals, DECIMALS);
+    assert_eq!(mint_state.supply, 0);
+
+    assert_eq!(
+        mint_state.mint_authority,
+        COption::Some(authority.pubkey())
+    );
 }
 
 // Student work for task/01-tests:
