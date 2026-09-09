@@ -1,105 +1,110 @@
-# Solana Level 1 Token Starter
+# Solana Level 1 — Token Program Tests
 
-Учебный starter для итоговых заданий первого уровня курса Superteam KZ. Он показывает современный минимальный каркас токен-программы без привязки к legacy JavaScript SDK.
+Итоговое задание первого уровня курса Superteam KZ.
 
-> Это исходная точка, а не готовое решение. Не работайте напрямую в ветке `main`: для каждого задания создавайте отдельную ветку.
+В рамках задания токен-программа на Anchor покрыта позитивными и негативными интеграционными тестами с использованием Rust и LiteSVM.
 
-## Как получить проект через GitHub
+## Submission
 
-Если вы ещё не работали с GitHub:
+Repository: `amangeldiaidos660/education`
 
-1. Нажмите **Fork** в правом верхнем углу страницы и создайте копию репозитория в своём аккаунте.
-2. На странице своей копии нажмите **Code** и скопируйте HTTPS-ссылку.
-3. Выполните в терминале:
+Branch: `task/01-tests`
 
-   ```bash
-   git clone <ссылка-на-ваш-fork>
-   cd education
-   git checkout -b task/01-tests
-   ```
+Submission link:
 
-4. После выполнения задания сохраните изменения:
+`https://github.com/amangeldiaidos660/education/tree/task/01-tests`
 
-   ```bash
-   git add .
-   git commit -m "Complete task 01 tests"
-   git push -u origin task/01-tests
-   ```
+## Stack
 
-5. Отправьте преподавателю ссылку на ветку `task/01-tests` или на последний commit.
+* Anchor CLI / crates: `1.1.2`
+* Solana CLI: `3.1.10`
+* Rust: `1.89.0`
+* LiteSVM: `0.10.0`
+* Token standard: Token-2022
+* Token interface: `anchor_spl::token_interface`
 
-Не знаете Git? Для этих заданий достаточно операций `clone`, `checkout -b`, `add`, `commit` и `push`; команды выше можно использовать как готовый сценарий.
+Legacy `@solana/web3.js` is not used in the added test code.
 
-## Задание 1 — покрыть токен-программу тестами
+## Architecture
 
-В проекте уже есть минимальный LiteSVM-тест `create_token`. Его нужно усилить и добавить тесты остальных реализованных инструкций.
+Program:
 
-### Что нужно сделать
+`programs/solana-level-1-token-starter`
 
-- В тесте `create_token` проверить `decimals`, mint authority, supply и владельца mint, а не только наличие аккаунта.
-- Покрыть `create_token_account`: проверить владельца token account, mint и token program.
-- Покрыть `mint_tokens`: проверить изменение баланса получателя и общего supply.
-- Покрыть `transfer_tokens`: проверить оба баланса и неизменность общего supply.
-- Добавить негативные сценарии: нулевая сумма, неверный authority, другой mint и одинаковые source/destination.
-- Обновить README в своём fork: указать версии, команды запуска и кратко описать добавленные тесты.
+Implemented instructions:
 
-### Готовность задания
+* `create_token` — creates a mint using the selected token program.
+* `create_token_account` — creates an associated token account for an owner and mint.
+* `mint_tokens` — mints tokens to a destination token account.
+* `transfer_tokens` — transfers tokens between token accounts using `transfer_checked`.
 
-Чистый checkout вашей ветки должен проходить:
+The program uses `anchor_spl::token_interface` and Token-2022.
+
+## Tests
+
+Tests are located in:
+
+```text
+programs/solana-level-1-token-starter/tests/
+```
+
+## Build
+
+From the repository root:
+
+```bash
+anchor build --ignore-keys
+```
+
+`--ignore-keys` is used because the program keypair is intentionally not stored in the repository.
+
+A successful build completes without errors and produces the program artifact used by LiteSVM tests.
+
+## Run tests
+
+After building:
+
+```bash
+cargo test --workspace --locked
+```
+
+Expected result:
+
+```text
+test_id ................................ ok
+
+creates_token_2022_mint ................ ok
+creates_token_2022_account ............. ok
+mints_tokens_and_updates_supply ........ ok
+
+rejects_zero_amount .................... ok
+rejects_wrong_authority ................ ok
+rejects_wrong_mint ..................... ok
+rejects_identical_source_and_destination ok
+
+transfers_tokens_and_keeps_supply_unchanged ... ok
+```
+
+Expected test summary:
+
+```text
+Program unit tests: 1 passed
+create_token:       1 passed
+create_token_account: 1 passed
+mint_tokens:        1 passed
+negative_cases:     4 passed
+transfer_tokens:    1 passed
+
+Failed: 0
+```
+
+## Reproducibility
+
+A clean checkout of branch `task/01-tests` should pass:
 
 ```bash
 anchor build --ignore-keys
 cargo test --workspace --locked
 ```
 
-Флаг `--ignore-keys` нужен только потому, что локальный program keypair намеренно не хранится в учебном репозитории. Для собственного devnet-деплоя создайте keypair локально и синхронизируйте ID командой `anchor keys sync`, но не добавляйте файл keypair в Git.
-
-Не публикуйте keypair, seed phrase, приватные ключи или `.env` с секретами.
-
-Следующие задания выполняются в ветках `task/02-burn` и `task/03-escrow`. Их условия выдаются на учебной платформе; готовой реализации в starter нет.
-
-## Зафиксированный стек
-
-- Anchor CLI и crates: `1.1.2`
-- Solana CLI: `3.1.10`
-- Rust: `1.89.0`
-- тесты программ: Rust + LiteSVM `0.10.0`
-- токены: `anchor_spl::token_interface`, совместимый с Token Program и Token-2022
-- рекомендуемый клиент для нового TypeScript-кода: `@solana/kit`
-
-`@solana/web3.js` относится к legacy-стеку. TypeScript-клиент Anchor `@anchor-lang/core` по-прежнему зависит от `@solana/web3.js` v1, поэтому в этом starter тесты написаны на Rust и LiteSVM. Для нового клиентского приложения используйте `@solana/kit`, если задание явно не требует другого.
-
-Оригинальный Token Program остается рабочим и широко используется. Для новых токенов в учебных заданиях используйте Token-2022, а program-код пишите через `token_interface`, чтобы сохранить совместимость с обоими Token Program.
-
-## Что уже реализовано
-
-- создание mint с выбранной token-программой;
-- создание associated token account;
-- выпуск токенов через `mint_to`;
-- перевод через `transfer_checked`;
-- проверки положительной суммы, полномочий, mint и token program на уровне Anchor accounts constraints;
-- один эталонный LiteSVM-тест создания Token-2022 mint.
-
-Функции `burn_tokens` и Escrow намеренно отсутствуют: студент реализует их в следующих заданиях.
-
-## Быстрый старт
-
-1. Установите версии из раздела «Зафиксированный стек» через AVM, rustup и официальный Solana installer.
-2. Для локального прохождения заданий выполните `anchor build --ignore-keys`. Для собственного devnet-деплоя создайте локальный program keypair и выполните `anchor keys sync`. Не коммитьте keypair или seed phrase.
-3. После первой сборки выполните `cargo test --workspace --locked`.
-4. Разрабатывайте каждое задание в отдельной ветке: `task/01-tests`, `task/02-burn`, `task/03-escrow`.
-
-Тест загружает собранный файл `target/deploy/solana_level_1_token_starter.so`, поэтому перед первым `cargo test` нужен `anchor build --ignore-keys`.
-
-## Правила сдачи
-
-- сдавайте публичную ссылку на GitHub-репозиторий и указывайте ветку или commit SHA;
-- добавьте в README команды сборки и тестирования, ожидаемый результат и краткое описание архитектуры;
-- не добавляйте в репозиторий private keys, seed phrases, `.env` с секретами или файлы keypair;
-- не используйте `@solana/web3.js` в новом клиентском коде;
-- для переводов токенов используйте `transfer_checked`, а не unchecked transfer;
-- не подменяйте проверки полномочий только клиентской логикой: все критичные инварианты должны проверяться программой.
-
-## Что считается современным решением
-
-Современность здесь определяется не только номером версии. Решение должно использовать строгие account constraints, проверяемые state transitions, Token-2022 для нового токена, `token_interface` для совместимости, `transfer_checked` для переводов и воспроизводимые LiteSVM-тесты. Если официальные стабильные рекомендации Solana или Anchor изменятся, студент должен зафиксировать выбранные версии и объяснить отклонение в README.
+No program keypair, seed phrase, private key, or other secret is required to run the test suite.
