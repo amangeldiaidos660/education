@@ -1,52 +1,98 @@
-# Solana Level 1 — Token Program Tests
+# Solana Level 1 — Burn Tokens
 
-Итоговое задание первого уровня курса Superteam KZ.
+Второе задание первого уровня курса Superteam KZ.
 
-В рамках задания токен-программа на Anchor покрыта позитивными и негативными интеграционными тестами с использованием Rust и LiteSVM.
+В рамках задания в токен-программу на Anchor добавлена инструкция `burn_tokens` для сжигания Token-2022 токенов и интеграционные тесты с использованием Rust и LiteSVM.
 
 ## Submission
 
 Repository: `amangeldiaidos660/education`
 
-Branch: `task/01-tests`
+Branch: `task/02-burn`
 
 Submission link:
 
-`https://github.com/amangeldiaidos660/education/tree/task/01-tests`
+`https://github.com/amangeldiaidos660/education/tree/task/02-burn`
 
 ## Stack
 
 * Anchor CLI / crates: `1.1.2`
+
 * Solana CLI: `3.1.10`
+
 * Rust: `1.89.0`
+
 * LiteSVM: `0.10.0`
+
 * Token standard: Token-2022
+
 * Token interface: `anchor_spl::token_interface`
 
-Legacy `@solana/web3.js` is not used in the added test code.
+## Implementation
 
-## Architecture
+Added instruction:
 
-Program:
+`burn_tokens`
 
-`programs/solana-level-1-token-starter`
+The instruction burns tokens from a Token-2022 token account using:
 
-Implemented instructions:
+`anchor_spl::token_interface::burn_checked`
 
-* `create_token` — creates a mint using the selected token program.
-* `create_token_account` — creates an associated token account for an owner and mint.
-* `mint_tokens` — mints tokens to a destination token account.
-* `transfer_tokens` — transfers tokens between token accounts using `transfer_checked`.
+The mint decimals are read directly from the validated mint account and passed to `burn_checked`.
 
-The program uses `anchor_spl::token_interface` and Token-2022.
+The instruction rejects a burn when `amount == 0`.
+
+## Account Constraints
+
+`authority`
+
+* Must be a transaction signer.
+* Must be the authority of the token account.
+
+`mint`
+
+* Must be a valid mint account.
+* Must belong to the provided token program.
+* Mint decimals are used by `burn_checked`.
+
+`token_account`
+
+* Must be a valid token account.
+* Must belong to the provided mint.
+* Must be controlled by `authority`.
+* Must belong to the provided token program.
+
+`token_program`
+
+* Validated through `Interface<TokenInterface>`.
+
+Critical accounts are not accepted as unvalidated `UncheckedAccount`.
 
 ## Tests
 
-Tests are located in:
+Tests for the burn instruction are located in:
 
 ```text
 programs/solana-level-1-token-starter/tests/
 ```
+
+Added test files:
+
+```text
+burn_tokens.rs
+burn_negative_cases.rs
+burn_failed_state.rs
+```
+
+The tests verify:
+
+* Successful burn decreases the token-account balance by the burned amount.
+* Successful burn decreases the mint total supply by the same amount.
+* `amount == 0` is rejected with `AmountMustBePositive`.
+* Burn with the wrong authority is rejected.
+* Burn with the wrong mint is rejected.
+* Burn with insufficient balance is rejected.
+* Token-account balance and mint supply remain unchanged after a failed burn transaction.
 
 ## Build
 
@@ -68,39 +114,32 @@ After building:
 cargo test --workspace --locked
 ```
 
-Expected result:
+Burn-specific tests can also be run separately:
 
-```text
-test_id ................................ ok
-
-creates_token_2022_mint ................ ok
-creates_token_2022_account ............. ok
-mints_tokens_and_updates_supply ........ ok
-
-rejects_zero_amount .................... ok
-rejects_wrong_authority ................ ok
-rejects_wrong_mint ..................... ok
-rejects_identical_source_and_destination ok
-
-transfers_tokens_and_keeps_supply_unchanged ... ok
+```bash
+cargo test --test burn_tokens --locked
+cargo test --test burn_negative_cases --locked
+cargo test --test burn_failed_state --locked
 ```
 
-Expected test summary:
+Expected burn test results:
 
 ```text
-Program unit tests: 1 passed
-create_token:       1 passed
-create_token_account: 1 passed
-mint_tokens:        1 passed
-negative_cases:     4 passed
-transfer_tokens:    1 passed
+burn_tokens:
+2 passed
+
+burn_negative_cases:
+3 passed
+
+burn_failed_state:
+1 passed
 
 Failed: 0
 ```
 
 ## Reproducibility
 
-A clean checkout of branch `task/01-tests` should pass:
+A clean checkout of branch `task/02-burn` should pass:
 
 ```bash
 anchor build --ignore-keys
