@@ -1,5 +1,4 @@
-/target
-/.anchor
-/.keys
-**/*.json
-!package.json
+.DS_Store
+target
+node_modules
+test-ledger
