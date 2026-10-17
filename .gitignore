@@ -1,5 +1,0 @@
-/target
-/.anchor
-/.keys
-**/*.json
-!package.json
