@@ -38,7 +38,7 @@ Mint: [`56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo`](https://explorer.solana.c
 Проверено с Node.js 22.18.0 и npm 10.9.3. Точные версии SDK и TypeScript зафиксированы в `package.json` и `package-lock.json`.
 
 ```powershell
-git clone --branch codex/week-07-spl-tokens --single-branch https://github.com/amangeldiaidos660/education.git
+git clone --branch task/07-spl-tokens-week-7 --single-branch https://github.com/amangeldiaidos660/education.git
 cd education/week-07
 npm ci
 npm run check

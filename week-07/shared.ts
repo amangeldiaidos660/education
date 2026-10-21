@@ -12,7 +12,7 @@ export const decimals = 6;
 export const issued = 1_000_000n * 10n ** BigInt(decimals);
 export const transferred = 125n * 10n ** BigInt(decimals);
 export const metadata = JSON.parse(await readFile(new URL('metadata.json', import.meta.url), 'utf8'));
-export const metadataUri = 'https://raw.githubusercontent.com/amangeldiaidos660/education/refs/heads/codex/week-07-spl-tokens/week-07/metadata.json';
+export const metadataUri = 'https://raw.githubusercontent.com/amangeldiaidos660/education/refs/heads/task/07-spl-tokens-week-7/week-07/metadata.json';
 
 export async function assertDevnet() {
   assert.equal(await rpc.getGenesisHash().send(), 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', 'Expected Solana Devnet');
