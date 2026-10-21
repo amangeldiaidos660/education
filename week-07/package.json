@@ -1,0 +1,24 @@
+{
+  "name": "almau-week-07-spl-tokens",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "devnet": "tsx client.ts",
+    "verify": "tsx verify.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solana-program/system": "0.16.0",
+    "@solana-program/token-2022": "0.20.0",
+    "@solana/kit": "8.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

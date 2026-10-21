@@ -3,3 +3,9 @@
 /.keys
 **/*.json
 !package.json
+!week-07/package-lock.json
+!week-07/tsconfig.json
+!week-07/metadata.json
+!week-07/results.json
+**/node_modules/
+week-07/.local/
