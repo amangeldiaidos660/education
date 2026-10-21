@@ -6,7 +6,8 @@ create: finalized, slot=513471267, fee=10000 lamports
 accounts: finalized, slot=513471274, fee=5000 lamports
 mint: finalized, slot=513471281, fee=5000 lamports
 transfer: finalized, slot=513471290, fee=5000 lamports
+metadataUpdate: finalized, slot=513498576, fee=5000 lamports
 PASS: Aidos AlmaU Token (AIDOS), decimals=6
 PASS: MetadataPointer + TokenMetadata, mint authority and token account owners
 PASS: supply=1000000; sender=999875; recipient=125 AIDOS
-PASS: all 4 transactions finalized; published metadata JSON matches local file
+PASS: all 5 transactions finalized; published metadata JSON matches local file

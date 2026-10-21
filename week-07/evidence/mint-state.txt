@@ -21,7 +21,7 @@
         "mint": "56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo",
         "name": "Aidos AlmaU Token",
         "symbol": "AIDOS",
-        "uri": "https://raw.githubusercontent.com/amangeldiaidos660/education/refs/heads/codex/week-07-spl-tokens/week-07/metadata.json",
+        "uri": "https://raw.githubusercontent.com/amangeldiaidos660/education/refs/heads/task/07-spl-tokens-week-7/week-07/metadata.json",
         "additionalMetadata": []
       }
     }

@@ -20,4 +20,4 @@ assert.deepEqual(published, metadata);
 console.log(`PASS: ${result.name} (${result.symbol}), decimals=${result.decimals}`);
 console.log('PASS: MetadataPointer + TokenMetadata, mint authority and token account owners');
 console.log('PASS: supply=1000000; sender=999875; recipient=125 AIDOS');
-console.log('PASS: all 4 transactions finalized; published metadata JSON matches local file');
+console.log(`PASS: all ${Object.keys(result.transactions).length} transactions finalized; published metadata JSON matches local file`);

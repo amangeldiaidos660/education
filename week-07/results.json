@@ -1,6 +1,6 @@
 {
   "network": "devnet",
-  "verifiedAt": "2026-10-21T09:17:41.617Z",
+  "verifiedAt": "2026-10-21T10:54:29.532Z",
   "owner": "AfDwj8iYT9DQoh1h1tQRvBkh2VNrDkiJ15ig43qb4t4j",
   "recipient": "HMg9Wz3DLAwU8GAYh91WhRMWQzdhpAsBpUYkZcf9tMtX",
   "mint": "56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo",
@@ -10,7 +10,7 @@
   "name": "Aidos AlmaU Token",
   "symbol": "AIDOS",
   "decimals": 6,
-  "metadataUri": "https://raw.githubusercontent.com/amangeldiaidos660/education/refs/heads/codex/week-07-spl-tokens/week-07/metadata.json",
+  "metadataUri": "https://raw.githubusercontent.com/amangeldiaidos660/education/refs/heads/task/07-spl-tokens-week-7/week-07/metadata.json",
   "issuedRaw": "1000000000000",
   "transferredRaw": "125000000",
   "balances": {
@@ -22,7 +22,8 @@
     "create": "EuW3XTDLJ6MLw5STkKZt4oPbwdV6CJdrU7vR9sP4YsvWpBh78HsVowfc9eXVmEMtdQLn5ZoFZK4unitgfZ36jYz",
     "accounts": "5J1j7JfgucisvmXVvVcCMR6K9oMTZqCnNBqMLMqzeE9gecg85v7miaTqCBTnjyGntvv8MAeNxCHEvKH4mwasixWN",
     "mint": "sd5Ekt7XCtw181YpnDGpsXkY5N3jLr5gTrzQzY7arzFHUwQEpxG1ry2XgkC4cpDVLzMSkb1b2fBNJL2byR3JtEc",
-    "transfer": "GPCTuNrPjfAWoPxQDB9F9igeH2GmEnNoT94QC5t1A8j7E9QeP46X5r39HejDYnCQXo7jYwAwTobXZMaxugmRJrh"
+    "transfer": "GPCTuNrPjfAWoPxQDB9F9igeH2GmEnNoT94QC5t1A8j7E9QeP46X5r39HejDYnCQXo7jYwAwTobXZMaxugmRJrh",
+    "metadataUpdate": "5kQgovqFZczQ6DPXygH4XLfHqtJH3W7cqnZC6oFheQNdVKs8fbXDGGxW8v1L1eiVjAx8SFqogbQ36fq54hvftX4b"
   },
   "explorer": "https://explorer.solana.com/address/56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo?cluster=devnet"
 }
