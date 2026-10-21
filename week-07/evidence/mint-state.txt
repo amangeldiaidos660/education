@@ -1,0 +1,29 @@
+{
+  "address": "56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo",
+  "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+  "mintAuthority": "AfDwj8iYT9DQoh1h1tQRvBkh2VNrDkiJ15ig43qb4t4j",
+  "supply": "1000000000000",
+  "decimals": 6,
+  "isInitialized": true,
+  "freezeAuthority": null,
+  "extensions": [
+    {
+      "extension": "metadataPointer",
+      "state": {
+        "authority": "AfDwj8iYT9DQoh1h1tQRvBkh2VNrDkiJ15ig43qb4t4j",
+        "metadataAddress": "56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo"
+      }
+    },
+    {
+      "extension": "tokenMetadata",
+      "state": {
+        "updateAuthority": "AfDwj8iYT9DQoh1h1tQRvBkh2VNrDkiJ15ig43qb4t4j",
+        "mint": "56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo",
+        "name": "Aidos AlmaU Token",
+        "symbol": "AIDOS",
+        "uri": "https://raw.githubusercontent.com/amangeldiaidos660/education/refs/heads/codex/week-07-spl-tokens/week-07/metadata.json",
+        "additionalMetadata": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+
+> almau-week-07-spl-tokens@1.0.0 devnet
+> tsx client.ts
+
+Network: Solana Devnet
+Wallet: AfDwj8iYT9DQoh1h1tQRvBkh2VNrDkiJ15ig43qb4t4j
+Recipient: HMg9Wz3DLAwU8GAYh91WhRMWQzdhpAsBpUYkZcf9tMtX
+Mint: 56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo
+create: finalized EuW3XTDLJ6MLw5STkKZt4oPbwdV6CJdrU7vR9sP4YsvWpBh78HsVowfc9eXVmEMtdQLn5ZoFZK4unitgfZ36jYz
+accounts: finalized 5J1j7JfgucisvmXVvVcCMR6K9oMTZqCnNBqMLMqzeE9gecg85v7miaTqCBTnjyGntvv8MAeNxCHEvKH4mwasixWN
+mint: finalized sd5Ekt7XCtw181YpnDGpsXkY5N3jLr5gTrzQzY7arzFHUwQEpxG1ry2XgkC4cpDVLzMSkb1b2fBNJL2byR3JtEc
+Before transfer: supply=1000000, sender=1000000, recipient=0 AIDOS
+transfer: finalized GPCTuNrPjfAWoPxQDB9F9igeH2GmEnNoT94QC5t1A8j7E9QeP46X5r39HejDYnCQXo7jYwAwTobXZMaxugmRJrh
+After transfer: supply=1000000, sender=999875, recipient=125 AIDOS
+MetadataPointer + TokenMetadata: verified
+PASS: mint, metadata, owners, decimals, supply and balances verified on-chain
+Explorer: https://explorer.solana.com/address/56WoASrH9tLiMZ2tRDGuPf8ZVFy2hhaF6KdLWcikJBEo?cluster=devnet

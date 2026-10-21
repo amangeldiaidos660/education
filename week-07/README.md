@@ -65,6 +65,8 @@ RPC фиксирован на Devnet, дополнительно проверя�
 
 ## Материалы
 
+- [Отчёт за 7 неделю](Амангелді%20Айдос%20неделя%207.docx)
+- [Вывод выполнения в Devnet](evidence/devnet.txt), [независимая проверка](evidence/verify.txt), [повторный запуск без повторного выпуска](evidence/resume.txt)
 - [Solana Token Metadata и Metadata Pointer](https://solana.com/docs/tokens/extensions/metadata)
 - [Token-2022 Extension Guide](https://www.solana-program.com/docs/token-2022/extensions)
 - [Solana Kit](https://www.solanakit.com/)
