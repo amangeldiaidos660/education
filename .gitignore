@@ -1,6 +1,6 @@
 /*
 !/.gitignore
-!/8-15/
+!/week-*/
 
 **/node_modules/
 **/target/
