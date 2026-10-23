@@ -1,0 +1,465 @@
+{
+  "schemaVersion": 1,
+  "network": "devnet",
+  "wallet": "HMg9Wz3DLAwU8GAYh91WhRMWQzdhpAsBpUYkZcf9tMtX",
+  "clmmProgramId": "DRayAUgENGQBKVaX8owNhgzkEDyoHTGVEGHVJT1E9pfH",
+  "tokenA": {
+    "mint": "Dr65tSRV4RgP2JGJNcWfFss7s2XhuUmjegMVcNc1oJK7",
+    "tokenAccount": "5r58noPSZqYXD7kDMER7zQkjHUnqrSwn2dkVob5J4HBK",
+    "decimals": 6,
+    "supply": "1000000000000",
+    "signature": "5Na7Nn4hcVEAJayXq5LC6tb3sSuHZzJ9HoKmsLayNeAgNhBVsLjG9mbwh7zM4oxAEQnhpmwdcJhJNS8JUEZU2KgR"
+  },
+  "tokenB": {
+    "mint": "Hh5GCJgsRK1MVhWhMy4whkm5oiLPNquoDnBqMsyAVdre",
+    "tokenAccount": "4oiBooHGV99FAYwrFkuzDmcy4BxgqynwA6wBm4VCQVKY",
+    "decimals": 6,
+    "supply": "1000000000000",
+    "signature": "ct7JRN8y7hxA6nh54Hh5Nbq4V4hFQtDiDpcjo3NwGz9zVD2m4uBdoHDxshW5DWz4BASMtbkBrH3MVbrrRXDWraX"
+  },
+  "pool": {
+    "id": "23GWNA7vKspwaNRE72LjHxCd2CzsBS6QXfeZZry3QU3G",
+    "configId": "CD4aJtX11cqTCAc83nxSPkkh5JW2yjD6uwHeovjqQ1qu",
+    "tradeFeeRate": 2500,
+    "tickSpacing": 60,
+    "vaultA": "GwT94XHRBbj3DyHSNbN8oWtV2NYroLH5AbRekBga19d6",
+    "vaultB": "yRFAiDXoFPByFvFiZqAFm4CFogswoakYCuyQ22iTtcV",
+    "observationId": "D2VaNwiuLnhYqSBnFLtUSGTpzhsBcobU7KTCr6tgZbEE",
+    "bitmapExtension": "3NSGkoVFimSHcqFMRGKkaRVu5xp9ijNQhhrPa4yEnpsq",
+    "initialPrice": "1",
+    "signature": "2wawmHshZp2zrNPGazNhQFypkUNY8Mycm1yF6xQc1zMzUAKkYJiXQ28fZjpRB6pN1BVb7pW2K8jMCcvz87zvnGTP"
+  },
+  "position": {
+    "nftMint": "B2FAfaJduvgguipB3zXSMUn7TRDBQ5ZEPAytqXCRRUoi",
+    "nftAccount": "Ew7G3KJxogYYV8L6nQzGynw84HK37G3xAUVMKg3uv7ym",
+    "personalPosition": "2uStZeCEGhtzVWvzvhCWnZxKke9NUjdtjD7qp9yBikiS",
+    "protocolPosition": "9eaf4VcGAnZnEstG3kLUoUAbeHp4m5uzEBuzzZRbtnAp",
+    "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+    "tickArrayUpper": "CNtUMHgBXGJ8ir8LdacMBDKKq4L7wH44vFQNDACgzDy",
+    "tickLower": -1080,
+    "tickUpper": 960,
+    "lowerPrice": "0.89763244330945058506",
+    "upperPrice": "1.1007537807153331814",
+    "baseAmountA": "100000000",
+    "maxAmountB": "113287542",
+    "signature": "2akunmdTXjDNwMZQHkt6VQTzuPkqna4uz1amEJU4fsoVhmNnn9DXcgn4VgKYAdwc2sGTkt5CTTkYgUGfzUF9W8Jd",
+    "liquidity": "2133837462"
+  },
+  "vaultProgramId": "HnAz6jnZQ2iwBUWutPEs8HTWJMHey6DUG1dCR5DvHk9f",
+  "vault": {
+    "state": "DMqS8tozmQdqtQCM489dVxdcV6f9JGrPGnvk661VYFUz",
+    "tokenAccountA": "Bzfb5j3qEP9EbChJVF7odznA6cKFboEcvZGw3JK1JsHN",
+    "tokenAccountB": "GNzydcxhFGGW43LprFqXCYGAAJU8UT8EKjaPornw74CN",
+    "strategy": "DUoTHDPFDi8qoR8GJwKaXrsF2SFfGdUHtGnQuPPaQhE",
+    "shareMint": "FB4gUbCfizz93SK15wRy76AHHzABoVGA7YSpZ5MEeB18",
+    "userCard": "9HPgttvtJz8Fa4DKbDrYXivM8yTADtnz7SckwcVA336e",
+    "userShares": "BiRpxN7abUEojSvyQLZ7BHJdAoDeN8v9VUtH3VhPnNAN"
+  },
+  "successfulSwap": {
+    "signature": "4HJNU1o2jFfcuN2DZzESnsMDsEBnv9qwSHL9ofQLDWx5jZCtCwpgw2oRa8HLtFi3TDjajhhTmF9H6ZtEibyNVFZX",
+    "amountIn": "1000000",
+    "amountOut": "935508",
+    "expectedOut": "935508",
+    "minimumOut": "926152",
+    "priceBefore": "0.9382777616019623",
+    "priceAfter": "0.93742861280827078938"
+  },
+  "rejectedSwap": {
+    "signature": "4UM3hf2TsTmmrCfGHWCCri7eVFzacDL2TrXMmoXu48rJYasEtpgGnapV1NRYQhMXPRr66GKSF198CV6YB7LBa7qj",
+    "amountIn": "1000000",
+    "minimumOut": "1869324",
+    "expectedOut": "934662",
+    "reason": "TooLittleOutputReceived"
+  },
+  "reverseSwap": {
+    "signature": "3pfzHQqGX9avKP11d1jssUHHZRm8Ks8o6UJznKQyeKgC1zeMeywnii9SaoHhxRSXPpyS8SBSJjT5ZJJwEBNpCbeF",
+    "amountIn": "935508",
+    "amountOut": "995006",
+    "minimumOut": "985055",
+    "priceBefore": "0.9374286128082708",
+    "priceAfter": "0.93827563762673039541"
+  },
+  "deployment": {
+    "programId": "HnAz6jnZQ2iwBUWutPEs8HTWJMHey6DUG1dCR5DvHk9f",
+    "signature": "CADgey7t4AABS4HvXvRxQhme57zzDoTF9pByunhJAMUn46bnXiwbjCVqLeWSb9xKKoxYP64Rp3w78bPQoz3vFY6",
+    "binaryBytes": 658264,
+    "sha256": "a930098dbcb850b28e4e9ea96cb642a93c957f88de988441aee2d2eed728b3c4"
+  },
+  "positionFunding": {
+    "signature": "3qhbLcctcg9tSnbwVzsvq5E2RC8ss17b9z5Fvi2PwjNXWAbkGi2e8ncS1rro8DF3pVMYB438oP88yhRmu3QSVLxR",
+    "amountA": "30000000",
+    "minimumB": "27424575"
+  },
+  "trader": {
+    "wallet": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W",
+    "tokenA": "8QgVTmkjzQEmsQpoBxvJ7d7PvthobAYaDw8aTJnud6hV",
+    "tokenB": "BeRiwpj1wk7RL4YXP1kHs7DjBJriQaS8LnsnM3b9zDhZ",
+    "setupSignature": "2KgsoxVBKn4S9xYVYPxadTvk4amKXFS7qMXV3hkWDc5FkPewdVgiVmtA7kWXdfxATUsfUTu5GpmentjABjZWWPmT"
+  },
+  "vaultPosition": {
+    "nftMint": "DNoK6M6j8tEqQrMUaGwTcypyY88duXSK6xndBo51pdKi",
+    "nftAccount": "Wo3MAWjHsjaWHgjWh8yokzUUUK33pPdNZsj7qx2U15t",
+    "personalPosition": "FM4YCCqoC8VezfLYBsRNgV9uVvRYYsuzcueNTK1uWLvx",
+    "protocolPosition": "AGA8R6yDFMhtg9oDSQqX9KBW73tjrtL2iYb1u5AWcszP",
+    "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+    "tickArrayUpper": "CNtUMHgBXGJ8ir8LdacMBDKKq4L7wH44vFQNDACgzDy",
+    "lowerStart": -3600,
+    "upperStart": 0,
+    "tickLower": -900,
+    "tickUpper": 120,
+    "lowerPrice": "0.91393529769668213767",
+    "upperPrice": "1.0120716816633626375",
+    "label": "rebalance-new-1792767584349",
+    "liquidity": "196538863",
+    "maximumA": "5000000",
+    "maximumB": "5000000",
+    "priceAtOpen": "0.96272496780062061708",
+    "openSignature": "4hZEpX6BXS26EdS2sdMP4XeHBthPMUy6r76ahtjCxuLmX1KSFpDT3GHRTUEmtcUdihWkGMr2Qtqc7vD17FwqzSVB",
+    "spentA": "4944333",
+    "spentB": "4950000",
+    "active": false,
+    "closeSignature": "4p6GMXUZn1TUkq9HtgAYxFv38wPZDgw2KQzdU85hHuDxNsgB3hoURdUsEzyDhWRy2GoLeMUKrMLmzsUKrX1dzEPA",
+    "returnedA": "4944332",
+    "returnedB": "4949999",
+    "minimumA": "4894888",
+    "minimumB": "4900499"
+  },
+  "positionCycles": {
+    "cycle-1792766843514": {
+      "nftMint": "4odDn6EcfPdNGVeAnHV51hsrBPc2uYggTe66Zw1mJYAN",
+      "nftAccount": "FcW9sH9f264UWzeTJnFu6GgxjfVdnux5qsaWahkHoXVj",
+      "personalPosition": "AJx8BtqVLCPJbvvXJTfB7P3eYf1u6X7dzaqgaP6i5ZfB",
+      "protocolPosition": "8MNbjS3FpNRgRaCP1rLF54VbpPCEU2ob8Sz4UF1NMMMq",
+      "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "tickArrayUpper": "CNtUMHgBXGJ8ir8LdacMBDKKq4L7wH44vFQNDACgzDy",
+      "lowerStart": -3600,
+      "upperStart": 0,
+      "tickLower": -840,
+      "tickUpper": 240,
+      "lowerPrice": "0.91943511745711205394",
+      "upperPrice": "1.0242890888249067309",
+      "label": "cycle-1792766843514",
+      "liquidity": "181346205",
+      "maximumA": "5000000",
+      "maximumB": "5000000",
+      "priceAtOpen": "0.97252663496475318885",
+      "openSignature": "4m6JPkd9Ubnso58HXCM8sXNyczRFbsm1mr6ryBoqA8vjvvja51YZw7DVBtAj62uCGuuf446Q1QK37rV1JJh25T9d",
+      "spentA": "4706671",
+      "spentB": "4950000",
+      "active": false,
+      "traderSwaps": [
+        {
+          "signature": "3kpYTsfrubv3FGd1bqfJaBqy5M2Zk1gf8P7fWM21QQEbi5D4R3v1WchFt5iwTeY1pJvzmbcHa4bSh64mgWQN5p6w",
+          "aToB": true,
+          "amountIn": "1000000",
+          "amountOut": "969683",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "32WG1Nx7nxXGNrBXsC1EvmcF7x67kjpMvEdqPuH4DPYA9vqRPJ7udMfN4xqDvvFmaK879vVsMQ3cKDojh9axoFHv",
+          "aToB": false,
+          "amountIn": "1000000",
+          "amountOut": "1026102",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "4AntxEnatpiAzowrzcAbuGCKtBEErBVdHkZBnkMKPTFT5xe2E92HL55tJ1VpNuVGGwS2mkYiUeWDCpRr6MbDq2kb",
+          "aToB": true,
+          "amountIn": "1000000",
+          "amountOut": "969706",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        }
+      ],
+      "collectSignature": "3RLrgP7vY77paR5PihDxeErEiJ2m9ZjaAmT86oeBVMCaYNdSLWvuNF1EnSKzf8aA32t5i7wfABhT1MZd3xvfvFj8",
+      "collectedA": "328",
+      "collectedB": "164",
+      "closeSignature": "8sht1wBHVdDHEMV7QpH9qCTtGDS9Ux9LpKzPf7LdFvwRXjaVNR92Ewz4mGZxEdrxRtijeQxAYj1WjVAvVhrUc2W",
+      "returnedA": "4782563",
+      "returnedB": "4876222",
+      "minimumA": "4734737",
+      "minimumB": "4827459"
+    },
+    "rebalance-old-1792766843514": {
+      "nftMint": "Lo5TbmZhsQD3d965r5nSk9cNom4UQmgscD7nWaQoNGW",
+      "nftAccount": "GeByWKfF9nfWVsdRPrJ2njyQp8pwvvvBKy73MsU5TehN",
+      "personalPosition": "D7XShcHuw6s57QTYrTyB9dF7eVopYxBM5swYgf5zePWQ",
+      "protocolPosition": "8MNbjS3FpNRgRaCP1rLF54VbpPCEU2ob8Sz4UF1NMMMq",
+      "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "tickArrayUpper": "CNtUMHgBXGJ8ir8LdacMBDKKq4L7wH44vFQNDACgzDy",
+      "lowerStart": -3600,
+      "upperStart": 0,
+      "tickLower": -840,
+      "tickUpper": 240,
+      "lowerPrice": "0.91943511745711205394",
+      "upperPrice": "1.0242890888249067309",
+      "label": "rebalance-old-1792766843514",
+      "liquidity": "184089978",
+      "maximumA": "5000000",
+      "maximumB": "5000000",
+      "priceAtOpen": "0.97172439184066602546",
+      "openSignature": "4urCFNcnoMtdB7preumRhos1B9gS2rPdBM4TCiK5Qt9hDg1Ey52c4LCjNaWwwfWUdvUUA7jXH6gXqeWNXg25kCcv",
+      "spentA": "4854924",
+      "spentB": "4950000",
+      "active": false,
+      "priceOutside": "0.91623246945906457076",
+      "priceMovingSwaps": [
+        {
+          "signature": "4QchVgGLhRmUGjFEaStQLP4z7ArbqvNz75s4UNay2MSkVTJQd3gjNBXE7orQaFA3gbdZnP6v3437ygYgBqCkQN5C",
+          "aToB": true,
+          "amountIn": "10000000",
+          "amountOut": "9652005",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "2mqVU4Z7FT74phHZ8ZbcSVHzwFabzgmmMDqNGjYjmfQDKinu3DJeE448zhvgRD3FWBGTUqwVu5Ueotwv6qiPgAF5",
+          "aToB": true,
+          "amountIn": "10000000",
+          "amountOut": "9570804",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "3EEouu9vLbWuqN3YEhfvXPV4GwT5XqTsBY8PHk5ALCxikate3xZCZd7Ma16fPchtwmx57rncKrmS1JHDw2b7uY3x",
+          "aToB": true,
+          "amountIn": "10000000",
+          "amountOut": "9490623",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "37mQrmmUspLe47P3DKfssh48SRdN1Pgj7L4fdZzTQNaN39uRp5BMne4Chi2AgPhWGkzLPr2pxxkjFhvQrz5poQZi",
+          "aToB": true,
+          "amountIn": "10000000",
+          "amountOut": "9411445",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "2tu7KR4B6g7bGJtZuqNhP7wYbdNAJuagHs74qiNCccr8rxeP9oGfjxXoDhkmwpgTB5G7YLhnpwUh7WaFaUAWSHn1",
+          "aToB": true,
+          "amountIn": "10000000",
+          "amountOut": "9333255",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "4MEk19M5vfB9CY48bYs9xF4bPN2SA1RF35iFPcm7hf8kZNyyS9i9oTD6kNY2HWFpWwQgTTqNBWNrCqc43KgedJpv",
+          "aToB": true,
+          "amountIn": "10000000",
+          "amountOut": "9256034",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "5GCq4Y9GmWR5pDWKTU4MuhLmMK6qN1Yod7oYJexAsj51CHVDSiivzybD5owMT556Uj3QUMsVfcJFRVGhR4pUWvUd",
+          "aToB": true,
+          "amountIn": "10000000",
+          "amountOut": "9179273",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        }
+      ],
+      "closeSignature": "5q2NCn6pWjJbHKoZ8fQVDt9iMqHT72DPDPEisVsEohYRQjNnzW9AtRfbZmquiVAkypnHP1anKxKpfAH5o11wqZMU",
+      "returnedA": "10102834",
+      "returnedB": "0",
+      "minimumA": "9990890",
+      "minimumB": "0"
+    },
+    "rebalance-new-1792766843514": {
+      "nftMint": "E3fvRr8RcypoCqiNmQV1cVZ1UzJbFuPg67WF5aEUnuVC",
+      "nftAccount": "GvTNN6JAmHwEf2JXpM9yMrLZcHPRchd4jSvv7cWGjmBW",
+      "personalPosition": "ngum2Tn6BBrV7JrYJvejAVeVxELYzfkh364JqUfxxSV",
+      "protocolPosition": "8EhPZ8Nu9ue2U1yGDxFRu8iwxJHmDk76P2RHgHwazA6W",
+      "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "tickArrayUpper": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "lowerStart": -3600,
+      "upperStart": -3600,
+      "tickLower": -1440,
+      "tickUpper": -360,
+      "lowerPrice": "0.86589398205787704813",
+      "upperPrice": "0.9646420297214768946",
+      "label": "rebalance-new-1792766843514",
+      "liquidity": "185629059",
+      "maximumA": "5000000",
+      "maximumB": "5000000",
+      "priceAtOpen": "0.91623246945906457076",
+      "openSignature": "3B3JCW4xAngxbVLSRVXnkJuh7Qp5U3eJfRux2rHiYQUAN4BPpHinG5HSrYo7cwD92A9P1vuSve1recbvPVGBvRFu",
+      "spentA": "4928699",
+      "spentB": "4950000",
+      "active": false,
+      "closeSignature": "3q2XszHb7uNMC5MYNWk6FKUHgBMAxyLNYRXSSHarPLUBkWDpjFjLT9z9UsZUPXqC4ntcSatfA5HZSCWkuf2UsZgR",
+      "returnedA": "4928698",
+      "returnedB": "4949999",
+      "minimumA": "4879411",
+      "minimumB": "4900499"
+    },
+    "cycle-1792767584349": {
+      "nftMint": "BGFmVja5isBYWsbj6nkrFA11CSQtVvmW2NY7tg3fP9cQ",
+      "nftAccount": "CZARaR5KU5JYJRQMQC7zRnh3bzg5rnpQ8b9jcP3PunBE",
+      "personalPosition": "12qCFnLyGT3EMqKCcf2MKMoKdMV8fL2xbMGBqPgzqr71",
+      "protocolPosition": "8EhPZ8Nu9ue2U1yGDxFRu8iwxJHmDk76P2RHgHwazA6W",
+      "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "tickArrayUpper": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "lowerStart": -3600,
+      "upperStart": -3600,
+      "tickLower": -1440,
+      "tickUpper": -360,
+      "lowerPrice": "0.86589398205787704813",
+      "upperPrice": "0.9646420297214768946",
+      "label": "cycle-1792767584349",
+      "liquidity": "175341939",
+      "maximumA": "5000000",
+      "maximumB": "5000000",
+      "priceAtOpen": "0.91329413631461293274",
+      "openSignature": "2d9FqJSCg2gm8aVk9mztcdTPFeYsajzRDA1HCUKtomaZsQHRJX8jbmHR3PhJ11BX2ohkKhQDtmGsaQ5pdcQ9zsBs",
+      "spentA": "4950000",
+      "spentB": "4406342",
+      "active": false,
+      "traderSwaps": [
+        {
+          "signature": "4ULD7KjB8dr7dR2CtNaCvW89iZszpSVjeCVn365z6K5sLG6XmCV7FVeL4u5G4DCyJjEgcmhr5fTj62CLNrMn6Sxp",
+          "aToB": true,
+          "amountIn": "1000000",
+          "amountOut": "910634",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "4McygUwKH3Zu9y7HwctWRfi1vcH62fpWYpJU7QaaYq1kSEtmKbaVbEk8zUd7j7KMXxj3jY65V8edd26ZN8Rp5Vhs",
+          "aToB": false,
+          "amountIn": "1000000",
+          "amountOut": "1092608",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "2C2tTXj9XiefUnFyyxsRqDqaPkVoBPmPjRQaVTkbHApoY4M8bfTXm3uUATmozztYP96VCoWQT4or5xrAM5Lzyk8t",
+          "aToB": true,
+          "amountIn": "1000000",
+          "amountOut": "910706",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        }
+      ],
+      "collectSignature": "23vX4tQtcEejCtjDH3Fpu7iEd5Lwq1fBp6kxbqXxsFMx3kNYYRwz57a9wqi3Gy7mQFmbL1axyizhyu31CndD8Vgr",
+      "collectedA": "318",
+      "collectedB": "159",
+      "closeSignature": "5yyPmNnaMYf5BT81krFkSYgU5XVJLeTPJRZX2kjsAZ4QXgjndJDxD1Ao5ERFJQjxEQDik8ySLMi1ukBgUU6U4ncw",
+      "returnedA": "5018520",
+      "returnedB": "4343785",
+      "minimumA": "4968334",
+      "minimumB": "4300347"
+    },
+    "rebalance-old-1792767584349": {
+      "nftMint": "ewPykRwmjkt2jFUJmJ5fFcMU1rjuhRAevYvKb5xipUZ",
+      "nftAccount": "FwqG2JdSsGrhXQL1t7Ai77UMhPJ2f5wy8LEgPS3Xi5jn",
+      "personalPosition": "2rYz3VrNhCsVtjWXGSHVRUhQER5E4n3DTfDtWf1xxYfb",
+      "protocolPosition": "23rvAn7QXWumhVhBvjFeY3QWx7uq8SvdCL65QrBf3WzH",
+      "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "tickArrayUpper": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "lowerStart": -3600,
+      "upperStart": -3600,
+      "tickLower": -1440,
+      "tickUpper": -420,
+      "lowerPrice": "0.86589398205787704813",
+      "upperPrice": "0.95887179406691927464",
+      "label": "rebalance-old-1792767584349",
+      "liquidity": "193643645",
+      "maximumA": "5000000",
+      "maximumB": "5000000",
+      "priceAtOpen": "0.91261236250751270646",
+      "openSignature": "4s9ZLQcM4SBFhaJNGTYTSX4TfETwxzYxn8GzqtXRGVaKoh4hqJrVfNNkLJAKfs8mBi99xSG4ys5CQNMLdmCfbZm7",
+      "spentA": "4950000",
+      "spentB": "4797178",
+      "active": false,
+      "priceOutside": "0.96272496780062061708",
+      "priceMovingSwaps": [
+        {
+          "signature": "QtPcK8rApvzQ561efnWrtG1u3MnAvVzuXcQWCavLzfg8ivapSRNBRjAyvnV9GUyjM6LYEqg3wTXVUawKE8nGbih",
+          "aToB": false,
+          "amountIn": "10000000",
+          "amountOut": "10881344",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "3Hy19sfJr2ZKv4TrRjVwdVjYmYYvbGKPGfUgc4FypA5tJNCSoYktZyNE36Ta1c8BTn4xKAZT6FagaqyLSJkvUqEi",
+          "aToB": false,
+          "amountIn": "10000000",
+          "amountOut": "10784579",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "34ZrAhVU5KhA4fbBvdZS2KTqgEe8tD4F2fyx9N4vHm7YD1Njwr3KWNsv3awhAggTGezHRCFXr5rruqkmBoDFwT1F",
+          "aToB": false,
+          "amountIn": "10000000",
+          "amountOut": "10689100",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "5zFyp8jVNBFpWszs6b4dXueKPRXhXknMAhk8Mo2CJyu5LkKRWXrnZdWC6dVcDPwU9bQYc5SpoYaef22MvdodHNzq",
+          "aToB": false,
+          "amountIn": "10000000",
+          "amountOut": "10594882",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "42M1xxS1tMcvE1isiYVg6VdsbsMrJpQKxAA5gQLSjabhue3DFdh93FNb14uLxK2iWxStA3d6S3GJN2HWfYTLjL3Z",
+          "aToB": false,
+          "amountIn": "10000000",
+          "amountOut": "10501905",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        },
+        {
+          "signature": "3z3QAC5eRFdk2MYdctYCrni2P8LU835xUXVVvCmddvU5Wk7Qr5dmNzVwu1tYwBZpsTQZTUYoB6rqreYR31t58zNJ",
+          "aToB": false,
+          "amountIn": "10000000",
+          "amountOut": "10409417",
+          "trader": "EDPPbejSaALKcPPQrbUjMZfU6AKwaBkAyby4gJwSub4W"
+        }
+      ],
+      "closeSignature": "Gps2wRV8eJhUYxRxNbCxP4bYd7Ti3EFyrMuLN6tYFTAbkmVJ7RBLNbHWsRHYXqemhGJMjtw3WYrS9pdwn4CyL4P",
+      "returnedA": "0",
+      "returnedB": "9437433",
+      "minimumA": "0",
+      "minimumB": "9333408"
+    },
+    "rebalance-new-1792767584349": {
+      "nftMint": "DNoK6M6j8tEqQrMUaGwTcypyY88duXSK6xndBo51pdKi",
+      "nftAccount": "Wo3MAWjHsjaWHgjWh8yokzUUUK33pPdNZsj7qx2U15t",
+      "personalPosition": "FM4YCCqoC8VezfLYBsRNgV9uVvRYYsuzcueNTK1uWLvx",
+      "protocolPosition": "AGA8R6yDFMhtg9oDSQqX9KBW73tjrtL2iYb1u5AWcszP",
+      "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+      "tickArrayUpper": "CNtUMHgBXGJ8ir8LdacMBDKKq4L7wH44vFQNDACgzDy",
+      "lowerStart": -3600,
+      "upperStart": 0,
+      "tickLower": -900,
+      "tickUpper": 120,
+      "lowerPrice": "0.91393529769668213767",
+      "upperPrice": "1.0120716816633626375",
+      "label": "rebalance-new-1792767584349",
+      "liquidity": "196538863",
+      "maximumA": "5000000",
+      "maximumB": "5000000",
+      "priceAtOpen": "0.96272496780062061708",
+      "openSignature": "4hZEpX6BXS26EdS2sdMP4XeHBthPMUy6r76ahtjCxuLmX1KSFpDT3GHRTUEmtcUdihWkGMr2Qtqc7vD17FwqzSVB",
+      "spentA": "4944333",
+      "spentB": "4950000",
+      "active": false,
+      "closeSignature": "4p6GMXUZn1TUkq9HtgAYxFv38wPZDgw2KQzdU85hHuDxNsgB3hoURdUsEzyDhWRy2GoLeMUKrMLmzsUKrX1dzEPA",
+      "returnedA": "4944332",
+      "returnedB": "4949999",
+      "minimumA": "4894888",
+      "minimumB": "4900499"
+    }
+  },
+  "rebalance": {
+    "oldPosition": "2rYz3VrNhCsVtjWXGSHVRUhQER5E4n3DTfDtWf1xxYfb",
+    "newPosition": "FM4YCCqoC8VezfLYBsRNgV9uVvRYYsuzcueNTK1uWLvx",
+    "priceOutside": "0.96272496780062061708",
+    "oldRange": [
+      "0.86589398205787704813",
+      "0.95887179406691927464"
+    ],
+    "newRange": [
+      "0.91393529769668213767",
+      "1.0120716816633626375"
+    ]
+  },
+  "positionExit": {
+    "signature": "5Cdan995UXpYuS9Ls8bdSTcdEVDkjDjr1ws1FWzidw5L3bYDbrBoGraWs3hJRDY6i7oo4jcUXprLnAgn2sXLvjv",
+    "amountB": "32279447",
+    "minimumA": "32609473"
+  },
+  "positionFinalWithdrawal": "2KB7Nhwi45Ds3krin1W3imiT69MDFP1cTuXymMuZZPs2yDGJozikyDdQVKYyn9kagEXdMkw9gcAXWXs487BgDwyo"
+}

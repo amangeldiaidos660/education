@@ -1,0 +1,10 @@
+/node_modules/
+/target/
+/.anchor/
+/.keys/
+/.local/
+/.env
+/.env.*
+*keypair*.json
+*.tmp
+*.log
