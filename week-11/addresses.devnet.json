@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "network": "devnet",
+  "wallet": "HMg9Wz3DLAwU8GAYh91WhRMWQzdhpAsBpUYkZcf9tMtX",
+  "clmmProgramId": "DRayAUgENGQBKVaX8owNhgzkEDyoHTGVEGHVJT1E9pfH",
+  "tokenA": {
+    "mint": "Dr65tSRV4RgP2JGJNcWfFss7s2XhuUmjegMVcNc1oJK7",
+    "tokenAccount": "5r58noPSZqYXD7kDMER7zQkjHUnqrSwn2dkVob5J4HBK",
+    "decimals": 6,
+    "supply": "1000000000000",
+    "signature": "5Na7Nn4hcVEAJayXq5LC6tb3sSuHZzJ9HoKmsLayNeAgNhBVsLjG9mbwh7zM4oxAEQnhpmwdcJhJNS8JUEZU2KgR"
+  },
+  "tokenB": {
+    "mint": "Hh5GCJgsRK1MVhWhMy4whkm5oiLPNquoDnBqMsyAVdre",
+    "tokenAccount": "4oiBooHGV99FAYwrFkuzDmcy4BxgqynwA6wBm4VCQVKY",
+    "decimals": 6,
+    "supply": "1000000000000",
+    "signature": "ct7JRN8y7hxA6nh54Hh5Nbq4V4hFQtDiDpcjo3NwGz9zVD2m4uBdoHDxshW5DWz4BASMtbkBrH3MVbrrRXDWraX"
+  },
+  "pool": {
+    "id": "23GWNA7vKspwaNRE72LjHxCd2CzsBS6QXfeZZry3QU3G",
+    "configId": "CD4aJtX11cqTCAc83nxSPkkh5JW2yjD6uwHeovjqQ1qu",
+    "tradeFeeRate": 2500,
+    "tickSpacing": 60,
+    "vaultA": "GwT94XHRBbj3DyHSNbN8oWtV2NYroLH5AbRekBga19d6",
+    "vaultB": "yRFAiDXoFPByFvFiZqAFm4CFogswoakYCuyQ22iTtcV",
+    "observationId": "D2VaNwiuLnhYqSBnFLtUSGTpzhsBcobU7KTCr6tgZbEE",
+    "bitmapExtension": "3NSGkoVFimSHcqFMRGKkaRVu5xp9ijNQhhrPa4yEnpsq",
+    "initialPrice": "1",
+    "signature": "2wawmHshZp2zrNPGazNhQFypkUNY8Mycm1yF6xQc1zMzUAKkYJiXQ28fZjpRB6pN1BVb7pW2K8jMCcvz87zvnGTP"
+  },
+  "position": {
+    "nftMint": "B2FAfaJduvgguipB3zXSMUn7TRDBQ5ZEPAytqXCRRUoi",
+    "nftAccount": "Ew7G3KJxogYYV8L6nQzGynw84HK37G3xAUVMKg3uv7ym",
+    "personalPosition": "2uStZeCEGhtzVWvzvhCWnZxKke9NUjdtjD7qp9yBikiS",
+    "protocolPosition": "9eaf4VcGAnZnEstG3kLUoUAbeHp4m5uzEBuzzZRbtnAp",
+    "tickArrayLower": "7TMxbWD96dqtzST7s6KM65FCbJGY4iQLmdjZiP2jsr3K",
+    "tickArrayUpper": "CNtUMHgBXGJ8ir8LdacMBDKKq4L7wH44vFQNDACgzDy",
+    "tickLower": -1080,
+    "tickUpper": 960,
+    "lowerPrice": "0.89763244330945058506",
+    "upperPrice": "1.1007537807153331814",
+    "baseAmountA": "100000000",
+    "maxAmountB": "113287542",
+    "signature": "2akunmdTXjDNwMZQHkt6VQTzuPkqna4uz1amEJU4fsoVhmNnn9DXcgn4VgKYAdwc2sGTkt5CTTkYgUGfzUF9W8Jd",
+    "liquidity": "2133837462"
+  }
+}

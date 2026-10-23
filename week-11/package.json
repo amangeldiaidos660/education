@@ -1,0 +1,28 @@
+{
+  "name": "liquidity-vault-week-11",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/range.test.ts",
+    "check": "tsx src/check.ts",
+    "create:tokens": "tsx src/createTokens.ts",
+    "create:pool": "tsx src/createPool.ts",
+    "open:position": "tsx src/openPosition.ts"
+  },
+  "dependencies": {
+    "@raydium-io/raydium-sdk-v2": "0.2.70-alpha",
+    "@solana/spl-token": "0.4.14",
+    "@solana/web3.js": "1.98.4",
+    "bn.js": "5.2.3",
+    "bs58": "5.0.0",
+    "decimal.js": "10.6.0"
+  },
+  "devDependencies": {
+    "@types/bn.js": "5.2.0",
+    "@types/node": "25.6.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

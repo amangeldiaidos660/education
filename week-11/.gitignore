@@ -1,0 +1,9 @@
+/node_modules/
+/dist/
+/.local/
+/.keys/
+.env
+.env.*
+*keypair*.json
+*.tmp
+*.log
