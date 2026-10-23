@@ -1,0 +1,14 @@
+/*
+!/.gitignore
+!/8-15/
+
+**/node_modules/
+**/target/
+**/.anchor/
+**/test-ledger/
+**/.keys/
+**/.local/
+**/.env
+**/.env.*
+**/*keypair*.json
+**/id.json
