@@ -25,7 +25,7 @@ async fn body(response: Response) -> Value {
 }
 
 #[tokio::test]
-async fn live_and_ready_distinguish_scaffold_readiness() {
+async fn liveness_is_independent_of_database_readiness() {
     let router = app(config(&[]));
     let live = router
         .clone()
@@ -38,10 +38,10 @@ async fn live_and_ready_distinguish_scaffold_readiness() {
         .oneshot(Request::get("/health/ready").body(Body::empty()).unwrap())
         .await
         .unwrap();
-    assert_eq!(ready.status(), StatusCode::OK);
+    assert_eq!(ready.status(), StatusCode::SERVICE_UNAVAILABLE);
     assert_eq!(
         body(ready).await,
-        json!({"status": "ready", "stage": "scaffold"})
+        json!({"status": "not_ready", "stage": "database", "database": "not_configured", "schema": "pending"})
     );
 }
 

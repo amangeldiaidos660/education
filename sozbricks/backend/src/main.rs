@@ -1,6 +1,7 @@
 use std::{error::Error, process::ExitCode};
 
-use sozbricks_api::{app, config::Config};
+use sozbricks_api::{app_with_database, config::Config, database::Database};
+use std::time::Duration;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -26,11 +27,31 @@ async fn run() -> Result<(), Box<dyn Error>> {
         .try_init()
         .map_err(|error| std::io::Error::other(error.to_string()))?;
     let config = Config::from_env()?;
+    let database = Database::new(config.database.as_ref());
     let listener = tokio::net::TcpListener::bind(config.address).await?;
+    let worker_database = database.clone();
+    let worker = tokio::spawn(async move {
+        if !worker_database.configured() {
+            tracing::warn!("database is not configured; readiness will return 503");
+            return;
+        }
+        loop {
+            match tokio::time::timeout(Duration::from_secs(60), worker_database.prepare()).await {
+                Ok(Ok(())) => { tracing::info!("database schema is ready"); break; }
+                Ok(Err(error)) => tracing::error!(reason = %error, "database initialization failed; retrying"),
+                Err(_) => tracing::error!("database initialization timed out; retrying"),
+            }
+            tokio::time::sleep(Duration::from_secs(15)).await;
+        }
+    });
     tracing::info!(address = %listener.local_addr()?, revision = %config.revision, "API started");
-    axum::serve(listener, app(config))
+    let result = axum::serve(listener, app_with_database(config, database.clone()))
         .with_graceful_shutdown(shutdown_signal())
-        .await?;
+        .await;
+    worker.abort();
+    let _ = worker.await;
+    let _ = tokio::time::timeout(Duration::from_secs(5), database.close()).await;
+    result?;
     tracing::info!("API stopped");
     Ok(())
 }

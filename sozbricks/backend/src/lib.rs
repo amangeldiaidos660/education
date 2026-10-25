@@ -1,4 +1,5 @@
 pub mod config;
+pub mod database;
 pub mod error;
 
 use std::{error::Error as _, sync::Arc, time::Instant};
@@ -17,15 +18,27 @@ use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
 use config::Config;
+use database::{Database, DatabaseError};
 use error::ApiError;
 
 pub fn app(config: Config) -> Router {
+    let database = Database::new(config.database.as_ref());
+    app_with_database(config, database)
+}
+
+#[derive(Clone)]
+struct AppState {
+    config: Config,
+    database: Database,
+}
+
+pub fn app_with_database(config: Config, database: Database) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(config.cors_origins.clone())
         .allow_methods([Method::GET, Method::HEAD])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
         .expose_headers([HeaderName::from_static("x-request-id")]);
-    let state = Arc::new(config);
+    let state = Arc::new(AppState { config, database });
     Router::new()
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
@@ -34,7 +47,7 @@ pub fn app(config: Config) -> Router {
         .method_not_allowed_fallback(method_not_allowed)
         .with_state(state.clone())
         .layer(cors)
-        .layer(middleware::from_fn_with_state(state, request_context))
+        .layer(middleware::from_fn_with_state(Arc::new(state.config.clone()), request_context))
 }
 
 #[derive(Serialize)]
@@ -50,13 +63,18 @@ async fn live() -> Json<Health> {
 struct Readiness {
     status: &'static str,
     stage: &'static str,
+    database: &'static str,
+    schema: &'static str,
 }
 
-async fn ready() -> Json<Readiness> {
-    Json(Readiness {
-        status: "ready",
-        stage: "scaffold",
-    })
+async fn ready(State(state): State<Arc<AppState>>) -> (StatusCode, Json<Readiness>) {
+    let (status, database, schema) = match state.database.readiness().await {
+        Ok(()) => (StatusCode::OK, "ok", "ok"),
+        Err(DatabaseError::NotConfigured) => (StatusCode::SERVICE_UNAVAILABLE, "not_configured", "pending"),
+        Err(DatabaseError::Schema | DatabaseError::Migration) => (StatusCode::SERVICE_UNAVAILABLE, "ok", "pending"),
+        Err(DatabaseError::Unavailable) => (StatusCode::SERVICE_UNAVAILABLE, "unavailable", "unknown"),
+    };
+    (status, Json(Readiness { status: if status == StatusCode::OK { "ready" } else { "not_ready" }, stage: "database", database, schema }))
 }
 
 #[derive(Serialize)]
@@ -66,11 +84,11 @@ struct Version {
     revision: String,
 }
 
-async fn version(State(config): State<Arc<Config>>) -> Json<Version> {
+async fn version(State(state): State<Arc<AppState>>) -> Json<Version> {
     Json(Version {
         name: env!("CARGO_PKG_NAME"),
         version: env!("CARGO_PKG_VERSION"),
-        revision: config.revision.clone(),
+        revision: state.config.revision.clone(),
     })
 }
 
