@@ -45,16 +45,18 @@ Supabase, Google OAuth, игровые результаты и Solana пока �
 
 Workflow `.github/workflows/sozbricks-backend.yml` запускается при изменениях бэкенда в `task/14-tests`, для PR в эту ветку и вручную. Он проверяет форматирование, Clippy без предупреждений, тесты и реальный HTTP-запуск Docker-контейнера на GitHub runner. Контейнер также проверяется на корректный выход после SIGTERM. Локальный Rust-сервер и Docker для этого не нужны.
 
-Первый облачный запуск при отсутствии Cargo.lock создаёт lockfile и форматирует исходники. Подготовленные файлы доступны в артефакте `backend-source`: их нужно сохранить в тестовую ветку. Следующие запуски используют зафиксированный Cargo.lock с `--locked` и проверяют форматирование без исправлений. Запуск workflow не создаёт коммиты и не меняет main.
+Cargo.lock и подготовленное облачным rustfmt форматирование сохранены в репозитории. CI использует `--locked`, проверяет форматирование без исправлений и собирает Docker из тех же файлов, которые получает Render. Запуск workflow не создаёт коммиты и не меняет main.
 
 ## Render Free
+
+Тестовый API: https://sozbricks-api-tests.onrender.com. Проверки: `/health/live`, `/health/ready`, `/version`.
 
 1. Подключить GitHub-репозиторий `amangeldiaidos660/education` к Render.
 2. Создать Blueprint из ветки `task/14-tests`, указав путь `sozbricks/render.yaml`.
 3. Проверить план **Free**, ветку **task/14-tests** и автодеплой **After CI Checks Pass**.
 4. После успешного CI проверить публичные `/health/live`, `/health/ready`, `/version`.
 
-Пути Docker в Blueprint заданы от корня Git-репозитория `8-15`, не от папки файла Blueprint. Для ручного создания Web Service используйте Docker context `sozbricks/backend`, Dockerfile `sozbricks/backend/Dockerfile` и health check `/health/live`.
+Пути Docker в Blueprint заданы от корня Git-репозитория `8-15`, не от папки файла Blueprint. Сервис, созданный вручную, использует Root Directory `sozbricks/backend`, Dockerfile `./Dockerfile`, Docker context `.` и health check `/health/live`. Это эквивалентно путям Blueprint без Root Directory. При ручном создании сервис не становится управляемым Blueprint автоматически: настройки ветки и автодеплоя проверяются в Render Dashboard.
 
 Render публикует commit в `RENDER_GIT_COMMIT`; API использует его в `/version`, если `APP_REVISION` не задан. В CI revision передаётся как Docker build arg `GIT_SHA`.
 

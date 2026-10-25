@@ -5,11 +5,13 @@ on:
     branches: [task/14-tests]
     paths:
       - sozbricks/backend/**
+      - sozbricks/render.yaml
       - .github/workflows/sozbricks-backend.yml
   pull_request:
     branches: [task/14-tests]
     paths:
       - sozbricks/backend/**
+      - sozbricks/render.yaml
       - .github/workflows/sozbricks-backend.yml
   workflow_dispatch:
 
@@ -32,19 +34,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust
         run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
-      - name: Prepare initial lockfile in the cloud
-        if: hashFiles('sozbricks/backend/Cargo.lock') == ''
-        run: cargo +1.98.1 generate-lockfile
-      - name: Prepare initial formatting in the cloud
-        run: cargo +1.98.1 fmt --all
-      - name: Save prepared source and lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-source
-          path: |
-            sozbricks/backend/Cargo.lock
-            sozbricks/backend/src/
-            sozbricks/backend/tests/
       - name: Check formatting
         run: cargo +1.98.1 fmt --all -- --check
       - name: Clippy
@@ -58,10 +47,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: backend-source
-          path: sozbricks/backend
       - name: Build image
         run: docker build --build-arg GIT_SHA=${{ github.sha }} -t sozbricks-api:ci sozbricks/backend
       - name: Start container
