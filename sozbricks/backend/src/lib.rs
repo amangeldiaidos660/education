@@ -1,5 +1,7 @@
+pub mod auth;
 pub mod config;
 pub mod database;
+pub mod docs;
 pub mod error;
 
 use std::{error::Error as _, sync::Arc, time::Instant};
@@ -8,7 +10,7 @@ use axum::{
     Json, Router,
     body::{Body, to_bytes},
     extract::{Request, State},
-    http::{HeaderName, HeaderValue, Method, StatusCode, header},
+    http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::get,
@@ -18,6 +20,7 @@ use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
 use config::Config;
+use auth::{AuthClient, AuthError, AuthUser};
 use database::{Database, DatabaseError};
 use error::ApiError;
 
@@ -28,6 +31,7 @@ pub fn app(config: Config) -> Router {
 
 #[derive(Clone)]
 struct AppState {
+    auth: AuthClient,
     config: Config,
     database: Database,
 }
@@ -38,11 +42,15 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .allow_methods([Method::GET, Method::HEAD])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
         .expose_headers([HeaderName::from_static("x-request-id")]);
-    let state = Arc::new(AppState { config, database });
+    let auth = AuthClient::new(config.auth.as_ref());
+    let state = Arc::new(AppState { config, database, auth });
     Router::new()
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/version", get(version))
+        .route("/v1/auth/me", get(auth_me))
+        .route("/docs", get(docs::swagger_ui))
+        .route("/openapi.json", get(docs::openapi))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
         .with_state(state.clone())
@@ -51,6 +59,10 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
             Arc::new(state.config.clone()),
             request_context,
         ))
+}
+
+async fn auth_me(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Result<Json<AuthUser>, AuthError> {
+    state.auth.authenticate(&headers).await.map(Json)
 }
 
 #[derive(Serialize)]

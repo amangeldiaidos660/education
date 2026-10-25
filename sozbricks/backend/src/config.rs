@@ -23,7 +23,15 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Clone)]
+pub struct AuthConfig {
+    pub user_url: reqwest::Url,
+    pub publishable_key: HeaderValue,
+    pub timeout: Duration,
+}
+
+#[derive(Clone)]
 pub struct Config {
+    pub auth: Option<AuthConfig>,
     pub database: Option<DatabaseConfig>,
     pub address: SocketAddr,
     pub cors_origins: Vec<HeaderValue>,
@@ -56,6 +64,9 @@ impl Config {
             "DATABASE_HEALTH_TIMEOUT_SECONDS",
             "DATABASE_RUN_MIGRATIONS",
             "DATABASE_SSL_MODE",
+            "SUPABASE_URL",
+            "SUPABASE_PUBLISHABLE_KEY",
+            "AUTH_TIMEOUT_SECONDS",
         ] {
             match env::var(variable) {
                 Ok(value) => {
@@ -72,6 +83,36 @@ impl Config {
 
     pub fn from_values(values: &HashMap<String, String>) -> Result<Self, ConfigError> {
         let value = |key: &str| values.get(key).map(|v| v.trim());
+        let auth_timeout = Duration::from_secs(number(
+            value("AUTH_TIMEOUT_SECONDS"), "AUTH_TIMEOUT_SECONDS", 5, 1, 10,
+        )? as u64);
+        let supabase_url = value("SUPABASE_URL").map(|value| {
+            let url = reqwest::Url::parse(value)
+                .map_err(|_| invalid("SUPABASE_URL", "must be an HTTPS project URL"))?;
+            if url.scheme() != "https" || url.host_str().is_none()
+                || !url.username().is_empty() || url.password().is_some()
+                || url.path() != "/" || url.query().is_some() || url.fragment().is_some()
+            {
+                return Err(invalid("SUPABASE_URL", "must be an HTTPS project origin without credentials, paths or query parameters"));
+            }
+            Ok(url)
+        }).transpose()?;
+        let auth = match value("SUPABASE_PUBLISHABLE_KEY") {
+            None => None,
+            Some(key) => {
+                if !key.starts_with("sb_publishable_") || key.len() <= "sb_publishable_".len()
+                    || key.len() > 512 || !key.bytes().all(|byte| byte.is_ascii_alphanumeric() || b"_-".contains(&byte))
+                {
+                    return Err(invalid("SUPABASE_PUBLISHABLE_KEY", "must be a publishable API key, not a secret or service-role key"));
+                }
+                let mut publishable_key = HeaderValue::from_str(key)
+                    .map_err(|_| invalid("SUPABASE_PUBLISHABLE_KEY", "must be a valid HTTP header value"))?;
+                publishable_key.set_sensitive(true);
+                let mut user_url = supabase_url.ok_or_else(|| invalid("SUPABASE_URL", "is required when SUPABASE_PUBLISHABLE_KEY is set"))?;
+                user_url.set_path("/auth/v1/user");
+                Some(AuthConfig { user_url, publishable_key, timeout: auth_timeout })
+            }
+        };
         let database = match value("DATABASE_URL") {
             None => None,
             Some(url) => {
@@ -197,6 +238,7 @@ impl Config {
             ));
         }
         Ok(Self {
+            auth,
             database,
             address: SocketAddr::new(host, port),
             cors_origins,

@@ -266,3 +266,29 @@ fn malformed_configuration_is_rejected_without_echoing_values() {
         assert!(!error.contains(value), "configuration error leaked a value");
     }
 }
+
+#[tokio::test]
+async fn swagger_and_openapi_describe_only_implemented_routes_and_bearer_auth() {
+    let router = app(config(&[]));
+    let response = router.clone().oneshot(Request::get("/docs").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(response.headers()[header::CONTENT_TYPE].to_str().unwrap().starts_with("text/html"));
+    let html = String::from_utf8(to_bytes(response.into_body(), 65536).await.unwrap().to_vec()).unwrap();
+    assert!(html.contains("SwaggerUIBundle"));
+    assert!(html.contains("/openapi.json"));
+    assert!(html.contains("persistAuthorization: false"));
+    let response = router.oneshot(Request::get("/openapi.json").body(Body::empty()).unwrap()).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let document = body(response).await;
+    assert_eq!(document["openapi"], "3.0.3");
+    assert_eq!(document["info"]["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(document["servers"][0]["url"], "/");
+    let paths = document["paths"].as_object().unwrap();
+    assert_eq!(paths.len(), 4);
+    for path in ["/health/live", "/health/ready", "/version", "/v1/auth/me"] {
+        assert!(paths[path]["get"]["responses"]["200"].is_object());
+    }
+    assert_eq!(paths["/v1/auth/me"]["get"]["security"], json!([{"supabaseBearer": []}]));
+    assert_eq!(document["components"]["securitySchemes"]["supabaseBearer"]["scheme"], "bearer");
+    assert_eq!(document["components"]["schemas"]["AuthUser"]["properties"]["email"]["nullable"], true);
+}

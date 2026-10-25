@@ -1,4 +1,4 @@
-# Söz Bricks API — PostgreSQL
+# Söz Bricks API — Supabase Auth и PostgreSQL
 
 Rust API разворачивается и проверяется в облаке. Ветка разработки и тестирования — `task/14-tests`. В `main` попадает только принятая демонстрационная версия. Папка `frontend` в рамках этого этапа не изменяется.
 
@@ -13,7 +13,7 @@ Rust API разворачивается и проверяется в облак�
 - PostgreSQL через SQLx, TLS, ограниченный пул подключений и контроль готовности схемы.
 - Версионированные миграции и 24 уровня с казахскими словами.
 
-Подключение базы Supabase настраивается через DATABASE_URL. Google OAuth, игровые HTTP-маршруты и Solana пока не реализованы. Сервис не запрашивает и не хранит ключи кошельков. SUPABASE_URL сохранён в Render для будущей авторизации и пока не используется API.
+Подключение базы Supabase настраивается через DATABASE_URL. Rust проверяет пользовательские сессии через Supabase Auth. Google OAuth настраивается в Google Cloud и Supabase, а запускается из клиентского приложения. Игровые HTTP-маршруты и Solana пока не реализованы. Сервис не запрашивает и не хранит ключи кошельков.
 
 ## Маршруты
 
@@ -22,6 +22,9 @@ Rust API разворачивается и проверяется в облак�
 | GET / HEAD | `/health/live` | `{"status":"ok"}` |
 | GET / HEAD | `/health/ready` | `{"status":"ready","stage":"database","database":"ok","schema":"ok"}` |
 | GET / HEAD | `/version` | `name`, `version`, `revision` |
+| GET / HEAD | `/v1/auth/me` | Подтверждённая личность: `id`, `email`, `display_name`, `provider`; нужен Bearer-токен |
+| GET / HEAD | `/docs` | Swagger UI |
+| GET / HEAD | `/openapi.json` | Спецификация OpenAPI 3.0.3 |
 
 Готовность возвращает HTTP 200 только после успешного SELECT 1 и проверки таблиц, версий и контрольных сумм миграций. При отсутствии DATABASE_URL, недоступной базе или неготовой схеме возвращается HTTP 503. Ливнес остаётся HTTP 200, пока работает процесс. Готовность базы не означает готовность Google OAuth или игровой логики.
 
@@ -46,10 +49,80 @@ Rust API разворачивается и проверяется в облак�
 | `DATABASE_ACQUIRE_TIMEOUT_SECONDS` | `5` | 1–30 |
 | `DATABASE_HEALTH_TIMEOUT_SECONDS` | `3` | 1–5; ограничивает полную проверку готовности |
 | `DATABASE_RUN_MIGRATIONS` | `true` | Применять миграции при запуске; `false` только после отдельного применения миграций |
+| `SUPABASE_URL` | не задана | HTTPS origin проекта, без путей, query-параметров и credentials |
+| `SUPABASE_PUBLISHABLE_KEY` | не задана | Публичный API-ключ `sb_publishable_…` из Supabase Settings → API Keys; требует SUPABASE_URL |
+| `AUTH_TIMEOUT_SECONDS` | `5` | 1–10; полное время запроса к Supabase Auth, включая чтение ответа |
 
 DATABASE_URL хранится только в Render Environment. Не сохраняйте её в репозиторий и не передавайте в GitHub Actions. URI и низкоуровневые ошибки подключения не выводятся в логи или HTTP-ответы. Пароль со специальными символами должен быть URL-кодирован. Для текущего проекта используется session pooler на порту 5432; transaction pooler не подходит для session advisory locks мигратора.
 
 TLS принудительно включён по умолчанию, даже если в URI указан более слабый режим. Для полной проверки сертификата используйте verify-full с доверенным корневым сертификатом. Полный SQL-текст и параметры запросов не логируются.
+
+## Google-вход и проверка сессии
+
+Google Client ID и Client Secret хранятся в настройках Google-провайдера Supabase. В Render добавляются SUPABASE_URL и SUPABASE_PUBLISHABLE_KEY. Rust не получает Google Client Secret, JWT signing secret или service_role. Если publishable key не задан, сервис продолжает работать: валидный по формату Bearer-заголовок на /v1/auth/me получает HTTP 503 с auth_not_configured. Database readiness независимо от этого может быть успешной.
+
+Клиент входит через Supabase Auth и передаёт session.access_token в Authorization: Bearer. Rust обращается к фиксированному /auth/v1/user своего проекта с publishable key и этим токеном. Пользовательские URL не принимаются, redirects HTTP-клиента отключены. Каждый защищённый запрос проверяется заново; сервер не хранит пользовательские токены и не возвращает refresh token или весь ответ Supabase. Лимит ответа Auth — 64 KiB. Настоящие запросы в Supabase происходят при использовании API; тесты CI используют временный HTTP-сервер с тестовыми ответами.
+
+Доступ разрешён только для role=authenticated, неанонимного пользователя с ненулевым UUID и Google в app_metadata.providers. Это подтверждает привязку Google к аккаунту, но не доказывает, что именно текущая сессия создана через Google, если у аккаунта есть другие способы входа. Если нужен исключительно Google-вход, отключите ненужные провайдеры в Supabase. Имя берётся из пользовательских metadata, обрезается до 60 символов и используется только для отображения. На фронтенде показывайте его обычным текстом, не HTML.
+
+Успешный GET /v1/auth/me возвращает:
+
+```json
+{
+  "id": "17bcb386-6840-4d10-8715-a45f73b92e6d",
+  "email": "player@example.com",
+  "display_name": "Қазақ ойыншысы",
+  "provider": "google"
+}
+```
+
+id соответствует auth.users.id. email может быть null. Этот маршрут ничего не записывает в sozbricks.profiles; игровой профиль будет отдельным API. Не отправляйте user_id из формы как подтверждение личности — будущие защищённые операции должны брать владельца только из результата серверной проверки.
+
+| HTTP | error.code | Действие клиента |
+| --- | --- | --- |
+| 401 | unauthorized | Токен отсутствует, имеет неверный формат, отклонён Auth либо аккаунт не соответствует условиям; попробовать обновление сессии, затем повторный вход |
+| 503 | auth_not_configured | Проверить переменные Render |
+| 503 | auth_unavailable | Auth недоступен, ограничил запросы или вернул неожиданный ответ; повторить позже, не разлогинивать пользователя |
+| 408 | request_timeout | Истёк общий тайм-аут API; повторить позже |
+
+Supabase Auth остаётся владельцем сессий и сроков JWT. Выход в Supabase не обязательно немедленно отзывает уже выданный access token: он может действовать до истечения срока. Rust не обещает немедленное прекращение всех сессий и не реализует собственный механизм refresh/logout. Клиентский Supabase SDK управляет обновлением токенов и выходом.
+
+## Подключение веба и Expo
+
+Папку frontend этот этап не изменяет. Для последующей интеграции понадобятся клиентские переменные EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY и EXPO_PUBLIC_API_URL. Первые две относятся к Supabase Auth, последняя — https://sozbricks-api-tests.onrender.com. DATABASE_URL и пароля базы в приложении быть не должно.
+
+В Supabase Authentication → URL Configuration задайте Site URL опубликованного веб-приложения и добавьте его точный callback URL в Redirect URLs. В Render CORS_ALLOWED_ORIGINS добавьте точный origin фронтенда без пути. Callback Supabase, указанный в Google Cloud, остаётся https://PROJECT_REF.supabase.co/auth/v1/callback. Это разные адреса: сначала Google возвращает пользователя в Supabase, затем Supabase возвращает его в приложение.
+
+Для веба с @supabase/supabase-js используйте один экземпляр клиента с flowType=pkce, detectSessionInUrl=true, persistSession=true и autoRefreshToken=true. Вход запускается так:
+
+```typescript
+const { error } = await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: { redirectTo: `${window.location.origin}/auth/callback` },
+});
+```
+
+Фронтенд должен обслуживать /auth/callback. После возврата SDK обрабатывает PKCE-код; дождитесь восстановления сессии через getSession или onAuthStateChange, обработайте ошибку входа и только затем вызывайте Rust API:
+
+```typescript
+const { data: { session }, error } = await supabase.auth.getSession();
+if (error || !session) throw new Error('Требуется вход');
+const response = await fetch(`${API_URL}/v1/auth/me`, {
+  headers: { Authorization: `Bearer ${session.access_token}` },
+});
+const data = await response.json();
+if (!response.ok) throw new Error(data.error?.code ?? 'request_failed');
+```
+
+Для Android через Expo потребуется браузерный OAuth с PKCE и callback в приложение: зарегистрированная scheme, точный deep link в Supabase Redirect URLs, skipBrowserRedirect=true, открытие через expo-web-browser.openAuthSessionAsync и обмен вернувшегося code через exchangeCodeForSession. Хранилище сессии и PKCE verifier должно переживать открытие браузера. Эти настройки требуют отдельной интеграции фронтенда и проверки на устройстве; пример веба нельзя копировать в Android без изменений. Возврат в приложение проверяйте на development/standalone build с его scheme. Токены не передавайте через query-параметры Rust API, в логи или чат.
+
+## Swagger и ручная проверка
+
+После успешного CI и деплоя пользователь открывает /docs. OpenAPI доступен отдельно на /openapi.json, сервер запросов — текущий origin. Интерфейс Swagger загружает закреплённую версию swagger-ui-dist 5.17.14 с jsDelivr; для отображения UI браузеру нужен доступ к CDN. JSON-спецификация обслуживается самим API и доступна независимо от CDN.
+
+Сначала проверьте /v1/auth/me без токена: ожидается 401 unauthorized и WWW-Authenticate: Bearer. После Google-входа в приложении возьмите session.access_token, нажмите Authorize и вставьте только токен, без префикса Bearer. Выполните GET /v1/auth/me: ожидается 200 с id аккаунта. Swagger не запускает Google-вход и не обменивает refresh token. Авторизация не сохраняется после перезагрузки страницы, внешний validator выключен. Проверки реального Render и Supabase выполняет пользователь; агент не опрашивает эти сервисы.
+
+Официальные инструкции: [Google OAuth](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [Expo и social sign-in](https://supabase.com/docs/guides/auth/quickstarts/with-expo-react-native-social-auth), [PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow).
 
 ## Схема и миграции
 
@@ -72,7 +145,7 @@ TLS принудительно включён по умолчанию, даже 
 
 Не редактируйте уже применённые миграции: добавляйте новые файлы. Несовпадение checksum оставляет readiness в 503. Удаление таблиц, очистка данных и откат миграций автоматически не выполняются.
 
-Пустой CORS-список не разрешает браузерные cross-origin запросы. Это не механизм авторизации: маршруты каркаса публичны. При подключении фронтенда добавьте его точный origin; разрешены GET/HEAD, заголовки Authorization/Content-Type, без cookie credentials.
+Пустой CORS-список не разрешает браузерные cross-origin запросы. Это не механизм авторизации: технические маршруты публичны, /v1/auth/me требует Bearer-токен. При подключении фронтенда добавьте его точный origin; разрешены GET/HEAD, заголовки Authorization/Content-Type, без cookie credentials.
 
 ## Облачные проверки
 
@@ -99,4 +172,4 @@ Render публикует commit в `RENDER_GIT_COMMIT`; API используе�
 
 ## Следующий шаг
 
-После подтверждения database=ok и schema=ok на Render — ограниченная runtime-роль и серверная проверка Google-сессий. Изменения фронтенда выполняются отдельно. Переход к Solana требует отдельного подтверждения готовности второго этапа.
+После ручного подтверждения авторизации — ограниченная runtime-роль, API игрового профиля, выдачи уровней и попыток, проверки результатов, прогресса и истории начислений. Наличие таблиц ещё не означает готовность этих операций. Изменения фронтенда выполняются отдельно. Переход к Solana требует отдельного подтверждения готовности второго этапа.
