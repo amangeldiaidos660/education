@@ -53,10 +53,10 @@ fn database_config_rejects_invalid_values_without_exposing_credentials() {
     let config = Config::from_values(&vars).unwrap();
     let db = config.database.unwrap();
     assert_eq!(db.max_connections, 3);
-    assert_eq!(
+    assert!(matches!(
         db.options.get_ssl_mode(),
         sqlx::postgres::PgSslMode::Require
-    );
+    ));
 }
 
 async fn create_result(pool: &PgPool, owner: Uuid, level: i16, won: bool) -> Uuid {

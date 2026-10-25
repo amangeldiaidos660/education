@@ -69,7 +69,7 @@ impl Database {
                 .await
                 .map_err(|_| DatabaseError::Unavailable)?;
             connection.close_on_drop();
-            MIGRATOR.run(&mut *connection).await.map_err(|error| {
+            MIGRATOR.run_direct(&mut *connection).await.map_err(|error| {
                 let kind = match error {
                     MigrateError::VersionMismatch(_) => "checksum_mismatch",
                     MigrateError::VersionMissing(_) => "missing_migration",
