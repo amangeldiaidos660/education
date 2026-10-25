@@ -19,8 +19,8 @@ use serde::Serialize;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
-use config::Config;
 use auth::{AuthClient, AuthError, AuthUser};
+use config::Config;
 use database::{Database, DatabaseError};
 use error::ApiError;
 
@@ -43,7 +43,11 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
         .expose_headers([HeaderName::from_static("x-request-id")]);
     let auth = AuthClient::new(config.auth.as_ref());
-    let state = Arc::new(AppState { config, database, auth });
+    let state = Arc::new(AppState {
+        config,
+        database,
+        auth,
+    });
     Router::new()
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
@@ -61,7 +65,10 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         ))
 }
 
-async fn auth_me(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Result<Json<AuthUser>, AuthError> {
+async fn auth_me(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<AuthUser>, AuthError> {
     state.auth.authenticate(&headers).await.map(Json)
 }
 

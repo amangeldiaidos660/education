@@ -2,7 +2,8 @@ use axum::{Json, response::Html};
 use serde_json::{Value, json};
 
 pub async fn swagger_ui() -> Html<&'static str> {
-    Html(r#"<!doctype html>
+    Html(
+        r#"<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -27,7 +28,8 @@ SwaggerUIBundle({
 });
 </script>
 </body>
-</html>"#)
+</html>"#,
+    )
 }
 
 fn response(description: &str, schema: Value) -> Value {
@@ -47,8 +49,12 @@ fn reference(name: &str) -> Value {
 
 pub async fn openapi() -> Json<Value> {
     let error = || reference("Error");
-    let mut unauthorized = response("Missing, malformed, expired or rejected token; account is not linked to Google", error());
-    unauthorized["headers"]["WWW-Authenticate"] = json!({"schema": {"type": "string", "enum": ["Bearer"]}});
+    let mut unauthorized = response(
+        "Missing, malformed, expired or rejected token; account is not linked to Google",
+        error(),
+    );
+    unauthorized["headers"]["WWW-Authenticate"] =
+        json!({"schema": {"type": "string", "enum": ["Bearer"]}});
     Json(json!({
         "openapi": "3.0.3",
         "info": {
