@@ -37,8 +37,13 @@ async fn run() -> Result<(), Box<dyn Error>> {
         }
         loop {
             match tokio::time::timeout(Duration::from_secs(60), worker_database.prepare()).await {
-                Ok(Ok(())) => { tracing::info!("database schema is ready"); break; }
-                Ok(Err(error)) => tracing::error!(reason = %error, "database initialization failed; retrying"),
+                Ok(Ok(())) => {
+                    tracing::info!("database schema is ready");
+                    break;
+                }
+                Ok(Err(error)) => {
+                    tracing::error!(reason = %error, "database initialization failed; retrying")
+                }
                 Err(_) => tracing::error!("database initialization timed out; retrying"),
             }
             tokio::time::sleep(Duration::from_secs(15)).await;

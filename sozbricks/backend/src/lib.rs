@@ -47,7 +47,10 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .method_not_allowed_fallback(method_not_allowed)
         .with_state(state.clone())
         .layer(cors)
-        .layer(middleware::from_fn_with_state(Arc::new(state.config.clone()), request_context))
+        .layer(middleware::from_fn_with_state(
+            Arc::new(state.config.clone()),
+            request_context,
+        ))
 }
 
 #[derive(Serialize)]
@@ -70,11 +73,29 @@ struct Readiness {
 async fn ready(State(state): State<Arc<AppState>>) -> (StatusCode, Json<Readiness>) {
     let (status, database, schema) = match state.database.readiness().await {
         Ok(()) => (StatusCode::OK, "ok", "ok"),
-        Err(DatabaseError::NotConfigured) => (StatusCode::SERVICE_UNAVAILABLE, "not_configured", "pending"),
-        Err(DatabaseError::Schema | DatabaseError::Migration) => (StatusCode::SERVICE_UNAVAILABLE, "ok", "pending"),
-        Err(DatabaseError::Unavailable) => (StatusCode::SERVICE_UNAVAILABLE, "unavailable", "unknown"),
+        Err(DatabaseError::NotConfigured) => {
+            (StatusCode::SERVICE_UNAVAILABLE, "not_configured", "pending")
+        }
+        Err(DatabaseError::Schema | DatabaseError::Migration) => {
+            (StatusCode::SERVICE_UNAVAILABLE, "ok", "pending")
+        }
+        Err(DatabaseError::Unavailable) => {
+            (StatusCode::SERVICE_UNAVAILABLE, "unavailable", "unknown")
+        }
     };
-    (status, Json(Readiness { status: if status == StatusCode::OK { "ready" } else { "not_ready" }, stage: "database", database, schema }))
+    (
+        status,
+        Json(Readiness {
+            status: if status == StatusCode::OK {
+                "ready"
+            } else {
+                "not_ready"
+            },
+            stage: "database",
+            database,
+            schema,
+        }),
+    )
 }
 
 #[derive(Serialize)]

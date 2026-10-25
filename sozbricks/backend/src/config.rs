@@ -6,9 +6,12 @@ use std::{
 };
 
 use axum::http::{HeaderValue, Uri};
-use thiserror::Error;
-use sqlx::{ConnectOptions, postgres::{PgConnectOptions, PgSslMode}};
+use sqlx::{
+    ConnectOptions,
+    postgres::{PgConnectOptions, PgSslMode},
+};
 use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Clone)]
 pub struct DatabaseConfig {
@@ -73,16 +76,30 @@ impl Config {
             None => None,
             Some(url) => {
                 if !(url.starts_with("postgresql://") || url.starts_with("postgres://"))
-                    || url.contains("[YOUR-PASSWORD]") || url.contains("YOUR-PASSWORD") {
-                    return Err(invalid("DATABASE_URL", "must be a PostgreSQL URI with actual credentials"));
+                    || url.contains("[YOUR-PASSWORD]")
+                    || url.contains("YOUR-PASSWORD")
+                {
+                    return Err(invalid(
+                        "DATABASE_URL",
+                        "must be a PostgreSQL URI with actual credentials",
+                    ));
                 }
                 let options = PgConnectOptions::from_str(url)
                     .map_err(|_| invalid("DATABASE_URL", "must be a valid PostgreSQL URI"))?;
                 let ssl_mode = match value("DATABASE_SSL_MODE").unwrap_or("require") {
                     "require" => PgSslMode::Require,
                     "verify-full" => PgSslMode::VerifyFull,
-                    "disable" if matches!(options.get_host(), "127.0.0.1" | "localhost" | "::1") => PgSslMode::Disable,
-                    _ => return Err(invalid("DATABASE_SSL_MODE", "must be require or verify-full; disable is limited to loopback test databases")),
+                    "disable"
+                        if matches!(options.get_host(), "127.0.0.1" | "localhost" | "::1") =>
+                    {
+                        PgSslMode::Disable
+                    }
+                    _ => {
+                        return Err(invalid(
+                            "DATABASE_SSL_MODE",
+                            "must be require or verify-full; disable is limited to loopback test databases",
+                        ));
+                    }
                 };
                 let run_migrations = match value("DATABASE_RUN_MIGRATIONS").unwrap_or("true") {
                     "true" => true,
@@ -90,11 +107,32 @@ impl Config {
                     _ => return Err(invalid("DATABASE_RUN_MIGRATIONS", "must be true or false")),
                 };
                 Some(DatabaseConfig {
-                    options: options.ssl_mode(ssl_mode).application_name("sozbricks-api")
-                        .statement_cache_capacity(0).disable_statement_logging(),
-                    max_connections: number(value("DATABASE_MAX_CONNECTIONS"), "DATABASE_MAX_CONNECTIONS", 3, 1, 10)? as u32,
-                    acquire_timeout: Duration::from_secs(number(value("DATABASE_ACQUIRE_TIMEOUT_SECONDS"), "DATABASE_ACQUIRE_TIMEOUT_SECONDS", 5, 1, 30)? as u64),
-                    health_timeout: Duration::from_secs(number(value("DATABASE_HEALTH_TIMEOUT_SECONDS"), "DATABASE_HEALTH_TIMEOUT_SECONDS", 3, 1, 5)? as u64),
+                    options: options
+                        .ssl_mode(ssl_mode)
+                        .application_name("sozbricks-api")
+                        .statement_cache_capacity(0)
+                        .disable_statement_logging(),
+                    max_connections: number(
+                        value("DATABASE_MAX_CONNECTIONS"),
+                        "DATABASE_MAX_CONNECTIONS",
+                        3,
+                        1,
+                        10,
+                    )? as u32,
+                    acquire_timeout: Duration::from_secs(number(
+                        value("DATABASE_ACQUIRE_TIMEOUT_SECONDS"),
+                        "DATABASE_ACQUIRE_TIMEOUT_SECONDS",
+                        5,
+                        1,
+                        30,
+                    )? as u64),
+                    health_timeout: Duration::from_secs(number(
+                        value("DATABASE_HEALTH_TIMEOUT_SECONDS"),
+                        "DATABASE_HEALTH_TIMEOUT_SECONDS",
+                        3,
+                        1,
+                        5,
+                    )? as u64),
                     run_migrations,
                 })
             }
