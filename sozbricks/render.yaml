@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: sozbricks-api-tests
+    runtime: docker
+    plan: free
+    branch: task/14-tests
+    dockerContext: sozbricks/backend
+    dockerfilePath: sozbricks/backend/Dockerfile
+    healthCheckPath: /health/live
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - sozbricks/backend/**
+        - sozbricks/render.yaml
+        - .github/workflows/sozbricks-backend.yml
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: RUST_LOG
+        value: sozbricks_api=info
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: "30"
+      - key: MAX_REQUEST_BODY_BYTES
+        value: "65536"
+      - key: CORS_ALLOWED_ORIGINS
+        value: ""

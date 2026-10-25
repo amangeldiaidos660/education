@@ -1,0 +1,82 @@
+name: Söz Bricks backend
+
+on:
+  push:
+    branches: [task/14-tests]
+    paths:
+      - sozbricks/backend/**
+      - .github/workflows/sozbricks-backend.yml
+  pull_request:
+    branches: [task/14-tests]
+    paths:
+      - sozbricks/backend/**
+      - .github/workflows/sozbricks-backend.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sozbricks-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Rust checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sozbricks/backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+      - name: Prepare initial lockfile in the cloud
+        if: hashFiles('sozbricks/backend/Cargo.lock') == ''
+        run: |
+          cargo +1.98.1 generate-lockfile
+          cargo +1.98.1 fmt --all
+      - name: Save prepared source and lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-source
+          path: |
+            sozbricks/backend/Cargo.lock
+            sozbricks/backend/src/
+            sozbricks/backend/tests/
+      - name: Check formatting
+        run: cargo +1.98.1 fmt --all -- --check
+      - name: Clippy
+        run: cargo +1.98.1 clippy --locked --all-targets --all-features -- -D warnings
+      - name: Tests
+        run: cargo +1.98.1 test --locked --all-targets --all-features
+  container:
+    name: Container smoke test
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-source
+          path: sozbricks/backend
+      - name: Build image
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t sozbricks-api:ci sozbricks/backend
+      - name: Start container
+        run: docker run -d --name sozbricks-api -e PORT=8080 -p 127.0.0.1:8080:8080 sozbricks-api:ci
+      - name: Verify HTTP endpoints
+        env:
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: |
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/health/live
+          curl --fail http://127.0.0.1:8080/health/ready
+          curl --fail http://127.0.0.1:8080/version | python3 -c 'import json, os, sys; data = json.load(sys.stdin); assert data["name"] == "sozbricks-api"; assert data["revision"] == os.environ["EXPECTED_REVISION"]'
+      - name: Verify graceful shutdown
+        run: |
+          docker stop --time 10 sozbricks-api
+          test "$(docker inspect --format '{{.State.ExitCode}}' sozbricks-api)" = "0"
+      - name: Container logs
+        if: always()
+        run: docker logs sozbricks-api
