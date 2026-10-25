@@ -69,15 +69,18 @@ impl Database {
                 .await
                 .map_err(|_| DatabaseError::Unavailable)?;
             connection.close_on_drop();
-            MIGRATOR.run_direct(&mut *connection).await.map_err(|error| {
-                let kind = match error {
-                    MigrateError::VersionMismatch(_) => "checksum_mismatch",
-                    MigrateError::VersionMissing(_) => "missing_migration",
-                    _ => "migration_failed",
-                };
-                tracing::error!(kind, "database migration rejected");
-                DatabaseError::Migration
-            })?;
+            MIGRATOR
+                .run_direct(&mut *connection)
+                .await
+                .map_err(|error| {
+                    let kind = match error {
+                        MigrateError::VersionMismatch(_) => "checksum_mismatch",
+                        MigrateError::VersionMissing(_) => "missing_migration",
+                        _ => "migration_failed",
+                    };
+                    tracing::error!(kind, "database migration rejected");
+                    DatabaseError::Migration
+                })?;
         }
         verify_schema(pool).await?;
         self.initialized.store(true, Ordering::Release);
