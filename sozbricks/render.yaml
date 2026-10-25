@@ -14,6 +14,14 @@ services:
         - sozbricks/render.yaml
         - .github/workflows/sozbricks-backend.yml
     envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL_MODE
+        value: require
+      - key: DATABASE_MAX_CONNECTIONS
+        value: "3"
+      - key: DATABASE_RUN_MIGRATIONS
+        value: "true"
       - key: HOST
         value: 0.0.0.0
       - key: RUST_LOG
