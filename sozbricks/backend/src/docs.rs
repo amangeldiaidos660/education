@@ -60,13 +60,9 @@ pub async fn openapi() -> Json<Value> {
         "info": {
             "title": "Söz Bricks API",
             "version": env!("CARGO_PKG_VERSION"),
-            "description": "Rust API: инфраструктура и проверка сессии Supabase. Google-вход выполняется через Supabase Auth в приложении. После входа передавайте session.access_token в Authorization: Bearer. В Authorize вставляйте только сам токен, без слова Bearer. Google access_token / id_token и API-ключ проекта здесь не подходят. Refresh token остаётся в клиенте Supabase. Маршрут me возвращает подтверждённую личность, не создаёт игровой профиль и не пишет в БД. Google означает наличие Google в привязанных провайдерах аккаунта. Игровые маршруты, история, прогресс и начисления пока не реализованы. Порядок подключения Expo и веба описан в README бэкенда."
+            "description": "Rust API: инфраструктура и проверка сессии Supabase. Google-вход выполняется через Supabase Auth в приложении. После входа передавайте session.access_token в Authorization: Bearer. В Authorize вставляйте только сам токен, без слова Bearer. Google access_token / id_token и API-ключ проекта здесь не подходят. Refresh token остаётся в клиенте Supabase. Маршрут me возвращает подтверждённую личность, не создаёт игровой профиль и не пишет в БД. Google означает наличие Google в привязанных провайдерах аккаунта. Игровые маршруты, история, прогресс и начисления пока не реализованы."
         },
         "servers": [{"url": "/", "description": "Current API deployment"}],
-        "externalDocs": {
-            "description": "Подключение веба и Expo, Google OAuth и обработка ошибок",
-            "url": "https://github.com/amangeldiaidos660/education/blob/task/14-tests/sozbricks/backend/README.md"
-        },
         "tags": [
             {"name": "Infrastructure", "description": "Public diagnostic routes; readiness checks only the database"},
             {"name": "Authentication", "description": "Verified Supabase users linked to Google"}
