@@ -319,12 +319,21 @@ async fn swagger_and_openapi_describe_only_implemented_routes_and_bearer_auth() 
         true
     );
     assert!(paths["/v1/profile"]["patch"].is_object());
-    assert_eq!(document["components"]["schemas"]["FinishSession"]["required"],json!(["won","score","collected_word","duration_seconds"]));
-    assert!(document["components"]["schemas"]["FinishSession"]["properties"].get("frames").is_none());
+    assert_eq!(
+        document["components"]["schemas"]["FinishSession"]["required"],
+        json!(["won", "score", "collected_word", "duration_seconds"])
+    );
+    assert!(
+        document["components"]["schemas"]["FinishSession"]["properties"]
+            .get("frames")
+            .is_none()
+    );
     for (path, methods) in paths {
         if path.starts_with("/v1/") {
-            for method in ["get","post","patch"] {
-                if let Some(operation) = methods.get(method) { assert_eq!(operation["security"],json!([{"supabaseBearer": []}])); }
+            for method in ["get", "post", "patch"] {
+                if let Some(operation) = methods.get(method) {
+                    assert_eq!(operation["security"], json!([{"supabaseBearer": []}]));
+                }
             }
         }
     }
@@ -332,17 +341,46 @@ async fn swagger_and_openapi_describe_only_implemented_routes_and_bearer_auth() 
 
 #[tokio::test]
 async fn game_routes_require_auth_and_allow_browser_post_and_patch() {
-    let router = app(config(&[("CORS_ALLOWED_ORIGINS","https://game.example")]));
-    for path in ["/v1/profile","/v1/progress","/v1/levels","/v1/history","/v1/rewards"] {
-        let response = router.clone().oneshot(Request::get(path).body(Body::empty()).unwrap()).await.unwrap();
-        assert_eq!(response.status(),StatusCode::UNAUTHORIZED);
-        assert_eq!(body(response).await["error"]["code"],"unauthorized");
+    let router = app(config(&[("CORS_ALLOWED_ORIGINS", "https://game.example")]));
+    for path in [
+        "/v1/profile",
+        "/v1/progress",
+        "/v1/levels",
+        "/v1/history",
+        "/v1/rewards",
+    ] {
+        let response = router
+            .clone()
+            .oneshot(Request::get(path).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(body(response).await["error"]["code"], "unauthorized");
     }
-    for method in ["POST","PATCH"] {
-        let response = router.clone().oneshot(Request::builder().method("OPTIONS").uri("/v1/profile")
-            .header(header::ORIGIN,"https://game.example").header(header::ACCESS_CONTROL_REQUEST_METHOD,method)
-            .header(header::ACCESS_CONTROL_REQUEST_HEADERS,"authorization,content-type").body(Body::empty()).unwrap()).await.unwrap();
-        assert_eq!(response.status(),StatusCode::OK);
-        assert!(response.headers()[header::ACCESS_CONTROL_ALLOW_METHODS].to_str().unwrap().contains(method));
+    for method in ["POST", "PATCH"] {
+        let response = router
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("OPTIONS")
+                    .uri("/v1/profile")
+                    .header(header::ORIGIN, "https://game.example")
+                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, method)
+                    .header(
+                        header::ACCESS_CONTROL_REQUEST_HEADERS,
+                        "authorization,content-type",
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(
+            response.headers()[header::ACCESS_CONTROL_ALLOW_METHODS]
+                .to_str()
+                .unwrap()
+                .contains(method)
+        );
     }
 }

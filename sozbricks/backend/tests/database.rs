@@ -37,7 +37,10 @@ fn database_config_rejects_invalid_values_without_exposing_credentials() {
         ("DATABASE_HEALTH_TIMEOUT_SECONDS", "6"),
         ("DATABASE_RUN_MIGRATIONS", "yes"),
         ("RUNTIME_DATABASE_URL", "https://project.supabase.co"),
-        ("RUNTIME_DATABASE_URL", "postgresql://postgres:[YOUR-PASSWORD]@localhost/postgres"),
+        (
+            "RUNTIME_DATABASE_URL",
+            "postgresql://postgres:[YOUR-PASSWORD]@localhost/postgres",
+        ),
     ] {
         let mut vars = HashMap::from([("DATABASE_URL".into(), secret_url.into())]);
         vars.insert(key.into(), value.into());
