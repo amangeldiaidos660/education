@@ -162,7 +162,8 @@ async fn account_progress_import_results_and_runtime_isolation() {
     assert_eq!(row.get::<i64,_>("count"),3);
     worker.abort();
     let _ = worker.await;
+    drop(router);
     database.close().await;
-    sqlx::query(&format!("DROP DATABASE {name}")).execute(&admin).await.unwrap();
+    sqlx::query(&format!("DROP DATABASE {name} WITH (FORCE)")).execute(&admin).await.unwrap();
     admin.close().await;
 }
