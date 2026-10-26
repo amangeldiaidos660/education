@@ -143,25 +143,27 @@ fn object(properties: Value, required: &[&str]) -> Value {
     json!({"type":"object","properties":properties,"required":required})
 }
 
-fn array(schema: Value) -> Value { json!({"type":"array","items":schema}) }
+fn array(schema: Value) -> Value {
+    json!({"type":"array","items":schema})
+}
 
 fn operation(id: &str, tag: &str, summary: &str, description: &str, result: &str) -> Value {
     json!({"operationId":id,"tags":[tag],"summary":summary,"description":description,
-        "security":[{"supabaseBearer":[]}],
-        "responses":{
-            "200":response("Success",reference(result)),
-            "400":response("Malformed JSON",reference("Error")),
-            "401":response("A valid Google-linked Supabase session is required",reference("Error")),
-            "403":response("level_locked",reference("Error")),
-            "404":response("Resource is missing or belongs to another user",reference("Error")),
-            "408":response("Request timed out; retry with the same identifiers and body",reference("Error")),
-            "409":response("Conflicting request_id, different result for an already completed session, or guest import already used",reference("Error")),
-            "410":response("session_expired; create a new attempt",reference("Error")),
-            "413":response("Body exceeds MAX_REQUEST_BODY_BYTES; default 65536 bytes",reference("Error")),
-            "415":response("Content-Type must be application/json for JSON bodies",reference("Error")),
-            "422":response("Invalid fields, ranges or pagination",reference("Error")),
-            "503":response("Auth/database unavailable, auth_not_configured, or auth_database_mismatch; do not delete the local save",reference("Error"))
-        }})
+    "security":[{"supabaseBearer":[]}],
+    "responses":{
+        "200":response("Success",reference(result)),
+        "400":response("Malformed JSON",reference("Error")),
+        "401":response("A valid Google-linked Supabase session is required",reference("Error")),
+        "403":response("level_locked",reference("Error")),
+        "404":response("Resource is missing or belongs to another user",reference("Error")),
+        "408":response("Request timed out; retry with the same identifiers and body",reference("Error")),
+        "409":response("Conflicting request_id, different result for an already completed session, or guest import already used",reference("Error")),
+        "410":response("session_expired; create a new attempt",reference("Error")),
+        "413":response("Body exceeds MAX_REQUEST_BODY_BYTES; default 65536 bytes",reference("Error")),
+        "415":response("Content-Type must be application/json for JSON bodies",reference("Error")),
+        "422":response("Invalid fields, ranges or pagination",reference("Error")),
+        "503":response("Auth/database unavailable, auth_not_configured, or auth_database_mismatch; do not delete the local save",reference("Error"))
+    }})
 }
 
 fn with_body(mut operation: Value, name: &str, example: Value) -> Value {
@@ -189,33 +191,60 @@ pub async fn openapi() -> Json<Value> {
         "best_score":number(),"next_level_id":{"type":"integer","nullable":true},"earned_lamports":number(),
         "balance_kind":{"type":"string","enum":["database_ledger_not_wallet"]}
     }), &["completed","recorded_completed","imported_completed","best","best_score","next_level_id","earned_lamports","balance_kind"]));
-    schemas.insert("ProfileResponse".into(),object(json!({"profile":reference("Profile"),"progress":reference("Progress")}), &["profile","progress"]));
-    let mut patch = object(json!({"display_name":{"type":"string","minLength":1,"maxLength":60},"hero":{"type":"string","enum":["alikhan","aiaru"]}}), &[]);
+    schemas.insert(
+        "ProfileResponse".into(),
+        object(
+            json!({"profile":reference("Profile"),"progress":reference("Progress")}),
+            &["profile", "progress"],
+        ),
+    );
+    let mut patch = object(
+        json!({"display_name":{"type":"string","minLength":1,"maxLength":60},"hero":{"type":"string","enum":["alikhan","aiaru"]}}),
+        &[],
+    );
     patch["additionalProperties"] = json!(false);
     patch["minProperties"] = json!(1);
-    schemas.insert("ProfilePatch".into(),patch);
+    schemas.insert("ProfilePatch".into(), patch);
     schemas.insert("Level".into(),object(json!({
         "id":level_id(),"word":text(),"translation":text(),"letter_count":number(),"speed":number(),"reward_lamports":number(),"rules_version":number(),
         "unlocked":boolean(),"completed":boolean(),"recorded_completed":boolean(),"imported_completed":boolean(),"best_score":number(),"recorded_best_score":number()
     }), &["id","word","translation","letter_count","speed","reward_lamports","rules_version","unlocked","completed","recorded_completed","imported_completed","best_score","recorded_best_score"]));
-    schemas.insert("LevelsResponse".into(),object(json!({"items":array(reference("Level"))}), &["items"]));
+    schemas.insert(
+        "LevelsResponse".into(),
+        object(json!({"items":array(reference("Level"))}), &["items"]),
+    );
     schemas.insert("GuestResult".into(),object(json!({"id":{"type":"string","minLength":1,"maxLength":160},"level":level_id(),"word":{"type":"string","maxLength":32},"score":{"type":"integer","minimum":0,"maximum":100000000},"won":boolean(),"seconds":{"type":"integer","minimum":0,"maximum":86400},"at":{"type":"integer","format":"int64","minimum":0,"description":"Unix milliseconds, as in the existing frontend save"}}), &["id","level","word","score","won","seconds","at"]));
     schemas.insert("GuestSave".into(),object(json!({
         "version":{"type":"integer","enum":[1]},"hero":{"type":"string","enum":["alikhan","aiaru"]},"completed":{"type":"array","maxItems":24,"items":level_id()},
         "best":{"type":"object","maxProperties":24,"additionalProperties":{"type":"integer","minimum":0,"maximum":100000000}},
         "history":{"type":"array","maxItems":100,"items":reference("GuestResult")}
     }), &["version","completed","best","history"]));
-    schemas.insert("GuestImport".into(),object(json!({"import_id":uuid(),"save":reference("GuestSave")}), &["import_id","save"]));
+    schemas.insert(
+        "GuestImport".into(),
+        object(
+            json!({"import_id":uuid(),"save":reference("GuestSave")}),
+            &["import_id", "save"],
+        ),
+    );
     schemas.insert("ImportResponse".into(),object(json!({"imported":boolean(),"repeated":boolean(),"awarded_lamports":{"type":"integer","enum":[0]},"progress":reference("Progress")}), &["imported","repeated","awarded_lamports","progress"]));
-    schemas.insert("StartSession".into(),object(json!({"level_id":level_id(),"request_id":uuid()}), &["level_id","request_id"]));
+    schemas.insert(
+        "StartSession".into(),
+        object(
+            json!({"level_id":level_id(),"request_id":uuid()}),
+            &["level_id", "request_id"],
+        ),
+    );
     schemas.insert("Session".into(),object(json!({
         "id":uuid(),"request_id":uuid(),"level_id":level_id(),"seed":number(),"rules_version":number(),
         "status":{"type":"string","enum":["started","completed","expired","abandoned"]},"started_at":text(),"expires_at":text(),
         "word":text(),"speed":number(),"reward_lamports":number(),"result_source":{"type":"string","enum":["frontend_reported"]}
     }), &["id","request_id","level_id","seed","rules_version","status","started_at","expires_at","word","speed","reward_lamports","result_source"]));
-    let mut finish = object(json!({"won":boolean(),"score":{"type":"integer","minimum":0,"maximum":100000000},"collected_word":{"type":"string","maxLength":32},"duration_seconds":{"type":"integer","minimum":0,"maximum":7200}}), &["won","score","collected_word","duration_seconds"]);
+    let mut finish = object(
+        json!({"won":boolean(),"score":{"type":"integer","minimum":0,"maximum":100000000},"collected_word":{"type":"string","maxLength":32},"duration_seconds":{"type":"integer","minimum":0,"maximum":7200}}),
+        &["won", "score", "collected_word", "duration_seconds"],
+    );
     finish["additionalProperties"] = json!(false);
-    schemas.insert("FinishSession".into(),finish);
+    schemas.insert("FinishSession".into(), finish);
     schemas.insert("FinishResponse".into(),object(json!({"session_id":uuid(),"level_id":level_id(),"won":boolean(),"score":number(),"collected_word":text(),"duration_seconds":number(),"source":{"type":"string","enum":["frontend_reported"]},"awarded_lamports":number(),"repeated":boolean(),"progress":reference("Progress")}), &["session_id","level_id","won","score","collected_word","duration_seconds","source","awarded_lamports","repeated","progress"]));
     schemas.insert("HistoryResult".into(),object(json!({"session_id":uuid(),"level_id":level_id(),"won":boolean(),"score":number(),"word":text(),"collected_word":text(),"duration_seconds":number(),"recorded_at":text(),"source":{"type":"string","enum":["frontend_reported"]}}), &["session_id","level_id","won","score","word","collected_word","duration_seconds","recorded_at","source"]));
     schemas.insert("HistoryResponse".into(),object(json!({"items":array(reference("HistoryResult")),"limit":number(),"offset":number(),"imported_history":array(reference("GuestResult")),"imported_history_verified":{"type":"boolean","enum":[false]}}), &["items","limit","offset","imported_history","imported_history_verified"]));
@@ -235,15 +264,23 @@ pub async fn openapi() -> Json<Value> {
     paths.insert("/v1/game-sessions/{id}/abandon".into(),json!({"post":operation("abandonSession","Game sessions","Закрыть незавершённую попытку","Вызывайте при выходе из игры, если не сохраняете проигрыш через finish. Тело не требуется. Повтор безопасен. Completed-попытку закрыть нельзя.","Session")}));
     paths.insert("/v1/history".into(),json!({"get":operation("getHistory","Progress","История переданных партий и старое сохранение","items — страницы новых результатов, сначала свежие. imported_history — отдельные старые записи, максимум 100, возвращаются без пагинации; не смешивайте их с серверными ID. Все результаты сообщены фронтендом; античит-проверки нет.","HistoryResponse")}));
     paths.insert("/v1/rewards".into(),json!({"get":operation("getRewards","Progress","Начисления за первые победы","amount_lamports — целое число; 1 SOL = 1000000000 lamports. total_lamports — общий итог независимо от страницы. status=recorded_not_paid. Этот маршрут ничего не переводит и не принимает сумму от клиента.","RewardsResponse")}));
-    for path in ["/v1/history","/v1/rewards"] {
+    for path in ["/v1/history", "/v1/rewards"] {
         paths.get_mut(path).unwrap()["get"]["parameters"] = json!([
             {"name":"limit","in":"query","schema":{"type":"integer","default":20,"minimum":1,"maximum":100}},
             {"name":"offset","in":"query","schema":{"type":"integer","default":0,"minimum":0,"maximum":10000}}
         ]);
     }
-    for path in ["/v1/game-sessions/{id}","/v1/game-sessions/{id}/finish","/v1/game-sessions/{id}/abandon"] {
-        paths.get_mut(path).unwrap()["parameters"] = json!([{"name":"id","in":"path","required":true,"schema":uuid()}]);
+    for path in [
+        "/v1/game-sessions/{id}",
+        "/v1/game-sessions/{id}/finish",
+        "/v1/game-sessions/{id}/abandon",
+    ] {
+        paths.get_mut(path).unwrap()["parameters"] =
+            json!([{"name":"id","in":"path","required":true,"schema":uuid()}]);
     }
-    spec["info"]["description"] = json!(format!("{}\n\nПорядок подключения фронта: Google OAuth → /v1/auth/me → при наличии гостевого Save /v1/progress/import → /v1/profile и /v1/levels → POST /v1/game-sessions → игра целиком на клиенте → POST finish → обновить состояние из progress ответа. Никакого потока движений или WebSocket. Сетевой сбой сохраняйте в локальной очереди под user_id; при смене аккаунта не отправляйте чужие результаты. Гость продолжает локальную игру.\n\nРабота с БД: миграции используют DATABASE_URL, игровые операции — отдельный пул с SET ROLE sozbricks_runtime и RLS по подтверждённому user_id. При отсутствии RUNTIME_DATABASE_URL этот пул использует те же credentials, но понижает SQL-роль после подключения. Для отдельного LOGIN задайте RUNTIME_DATABASE_URL и вручную выдайте ему membership sozbricks_runtime. Схему sozbricks не добавляйте в exposed schemas. В Render должны быть SUPABASE_URL и SUPABASE_PUBLISHABLE_KEY. CORS_ALLOWED_ORIGINS — точные origins веба. MAX_REQUEST_BODY_BYTES по умолчанию 65536. При 503 не очищайте пользовательские сохранения. При истечении сессии 410 нужна новая попытка; для уже завершённой попытки неизменный finish можно повторять.",spec["info"]["description"].as_str().unwrap()));
+    spec["info"]["description"] = json!(format!(
+        "{}\n\nПорядок подключения фронта: Google OAuth → /v1/auth/me → при наличии гостевого Save /v1/progress/import → /v1/profile и /v1/levels → POST /v1/game-sessions → игра целиком на клиенте → POST finish → обновить состояние из progress ответа. Никакого потока движений или WebSocket. Сетевой сбой сохраняйте в локальной очереди под user_id; при смене аккаунта не отправляйте чужие результаты. Гость продолжает локальную игру.\n\nРабота с БД: миграции используют DATABASE_URL, игровые операции — отдельный пул с SET ROLE sozbricks_runtime и RLS по подтверждённому user_id. При отсутствии RUNTIME_DATABASE_URL этот пул использует те же credentials, но понижает SQL-роль после подключения. Для отдельного LOGIN задайте RUNTIME_DATABASE_URL и вручную выдайте ему membership sozbricks_runtime. Схему sozbricks не добавляйте в exposed schemas. В Render должны быть SUPABASE_URL и SUPABASE_PUBLISHABLE_KEY. CORS_ALLOWED_ORIGINS — точные origins веба. MAX_REQUEST_BODY_BYTES по умолчанию 65536. При 503 не очищайте пользовательские сохранения. При истечении сессии 410 нужна новая попытка; для уже завершённой попытки неизменный finish можно повторять.",
+        spec["info"]["description"].as_str().unwrap()
+    ));
     Json(spec)
 }

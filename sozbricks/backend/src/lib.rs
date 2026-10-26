@@ -56,7 +56,10 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .route("/health/ready", get(ready))
         .route("/version", get(version))
         .route("/v1/auth/me", get(auth_me))
-        .route("/v1/profile", get(game_api::get_profile).patch(game_api::patch_profile))
+        .route(
+            "/v1/profile",
+            get(game_api::get_profile).patch(game_api::patch_profile),
+        )
         .route("/v1/progress", get(game_api::get_progress))
         .route("/v1/progress/import", post(game_api::import_progress))
         .route("/v1/levels", get(game_api::get_levels))
@@ -64,8 +67,14 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .route("/v1/rewards", get(game_api::get_rewards))
         .route("/v1/game-sessions", post(game_api::start_session))
         .route("/v1/game-sessions/{id}", get(game_api::get_session))
-        .route("/v1/game-sessions/{id}/finish", post(game_api::finish_session))
-        .route("/v1/game-sessions/{id}/abandon", post(game_api::abandon_session))
+        .route(
+            "/v1/game-sessions/{id}/finish",
+            post(game_api::finish_session),
+        )
+        .route(
+            "/v1/game-sessions/{id}/abandon",
+            post(game_api::abandon_session),
+        )
         .route("/docs", get(docs::swagger_ui))
         .route("/openapi.json", get(docs::openapi))
         .fallback(not_found)
@@ -83,7 +92,9 @@ async fn auth_me(
     headers: HeaderMap,
 ) -> Result<Json<AuthUser>, profile::GameError> {
     let user = state.auth.authenticate(&headers).await?;
-    if state.database.configured() { profile::ensure(&state.database, &user).await?; }
+    if state.database.configured() {
+        profile::ensure(&state.database, &user).await?;
+    }
     Ok(Json(user))
 }
 

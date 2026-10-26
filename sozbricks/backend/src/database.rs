@@ -41,13 +41,25 @@ impl Database {
     pub fn new(config: Option<&DatabaseConfig>) -> Self {
         Self {
             runtime: config.map(|config| {
-                PgPoolOptions::new().max_connections(config.max_connections).min_connections(0)
-                    .acquire_timeout(config.acquire_timeout).idle_timeout(Duration::from_secs(60))
-                    .after_connect(|connection, _| Box::pin(async move {
-                        sqlx::query("SET ROLE sozbricks_runtime").execute(connection).await?;
-                        Ok(())
-                    }))
-                    .connect_lazy_with(config.runtime_options.clone().unwrap_or_else(|| config.options.clone()))
+                PgPoolOptions::new()
+                    .max_connections(config.max_connections)
+                    .min_connections(0)
+                    .acquire_timeout(config.acquire_timeout)
+                    .idle_timeout(Duration::from_secs(60))
+                    .after_connect(|connection, _| {
+                        Box::pin(async move {
+                            sqlx::query("SET ROLE sozbricks_runtime")
+                                .execute(connection)
+                                .await?;
+                            Ok(())
+                        })
+                    })
+                    .connect_lazy_with(
+                        config
+                            .runtime_options
+                            .clone()
+                            .unwrap_or_else(|| config.options.clone()),
+                    )
             }),
             pool: config.map(|config| {
                 PgPoolOptions::new()
@@ -72,7 +84,11 @@ impl Database {
     }
 
     pub fn runtime_pool(&self) -> Option<&PgPool> {
-        if self.initialized.load(Ordering::Acquire) { self.runtime.as_ref() } else { None }
+        if self.initialized.load(Ordering::Acquire) {
+            self.runtime.as_ref()
+        } else {
+            None
+        }
     }
 
     pub async fn prepare(&self) -> Result<(), DatabaseError> {
@@ -100,7 +116,9 @@ impl Database {
         let runtime = self.runtime.as_ref().ok_or(DatabaseError::NotConfigured)?;
         let restricted: bool = sqlx::query_scalar("SELECT current_user = 'sozbricks_runtime' AND NOT rolsuper AND NOT rolbypassrls FROM pg_roles WHERE rolname = current_user")
             .fetch_one(runtime).await.map_err(|_| DatabaseError::Unavailable)?;
-        if !restricted { return Err(DatabaseError::Schema); }
+        if !restricted {
+            return Err(DatabaseError::Schema);
+        }
         self.initialized.store(true, Ordering::Release);
         Ok(())
     }
@@ -116,7 +134,10 @@ impl Database {
                 return Err(DatabaseError::Schema);
             }
             let runtime = self.runtime.as_ref().ok_or(DatabaseError::NotConfigured)?;
-            sqlx::query_scalar::<_, i32>("SELECT 1").fetch_one(runtime).await.map_err(|_|DatabaseError::Unavailable)?;
+            sqlx::query_scalar::<_, i32>("SELECT 1")
+                .fetch_one(runtime)
+                .await
+                .map_err(|_| DatabaseError::Unavailable)?;
             verify_schema(pool).await
         })
         .await
@@ -124,7 +145,9 @@ impl Database {
     }
 
     pub async fn close(&self) {
-        if let Some(pool) = &self.runtime { pool.close().await; }
+        if let Some(pool) = &self.runtime {
+            pool.close().await;
+        }
         if let Some(pool) = &self.pool {
             pool.close().await;
         }
