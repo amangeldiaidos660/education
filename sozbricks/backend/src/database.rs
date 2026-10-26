@@ -19,6 +19,7 @@ pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 #[derive(Clone)]
 pub struct Database {
     pool: Option<PgPool>,
+    runtime: Option<PgPool>,
     initialized: Arc<AtomicBool>,
     run_migrations: bool,
     health_timeout: Duration,
@@ -39,6 +40,15 @@ pub enum DatabaseError {
 impl Database {
     pub fn new(config: Option<&DatabaseConfig>) -> Self {
         Self {
+            runtime: config.map(|config| {
+                PgPoolOptions::new().max_connections(config.max_connections).min_connections(0)
+                    .acquire_timeout(config.acquire_timeout).idle_timeout(Duration::from_secs(60))
+                    .after_connect(|connection, _| Box::pin(async move {
+                        sqlx::query("SET ROLE sozbricks_runtime").execute(connection).await?;
+                        Ok(())
+                    }))
+                    .connect_lazy_with(config.runtime_options.clone().unwrap_or_else(|| config.options.clone()))
+            }),
             pool: config.map(|config| {
                 PgPoolOptions::new()
                     .max_connections(config.max_connections)
@@ -59,6 +69,10 @@ impl Database {
 
     pub fn pool(&self) -> Option<&PgPool> {
         self.pool.as_ref()
+    }
+
+    pub fn runtime_pool(&self) -> Option<&PgPool> {
+        if self.initialized.load(Ordering::Acquire) { self.runtime.as_ref() } else { None }
     }
 
     pub async fn prepare(&self) -> Result<(), DatabaseError> {
@@ -83,6 +97,10 @@ impl Database {
                 })?;
         }
         verify_schema(pool).await?;
+        let runtime = self.runtime.as_ref().ok_or(DatabaseError::NotConfigured)?;
+        let restricted: bool = sqlx::query_scalar("SELECT current_user = 'sozbricks_runtime' AND NOT rolsuper AND NOT rolbypassrls FROM pg_roles WHERE rolname = current_user")
+            .fetch_one(runtime).await.map_err(|_| DatabaseError::Unavailable)?;
+        if !restricted { return Err(DatabaseError::Schema); }
         self.initialized.store(true, Ordering::Release);
         Ok(())
     }
@@ -97,6 +115,8 @@ impl Database {
             if !self.initialized.load(Ordering::Acquire) {
                 return Err(DatabaseError::Schema);
             }
+            let runtime = self.runtime.as_ref().ok_or(DatabaseError::NotConfigured)?;
+            sqlx::query_scalar::<_, i32>("SELECT 1").fetch_one(runtime).await.map_err(|_|DatabaseError::Unavailable)?;
             verify_schema(pool).await
         })
         .await
@@ -104,6 +124,7 @@ impl Database {
     }
 
     pub async fn close(&self) {
+        if let Some(pool) = &self.runtime { pool.close().await; }
         if let Some(pool) = &self.pool {
             pool.close().await;
         }
@@ -130,7 +151,9 @@ async fn verify_schema(pool: &PgPool) -> Result<(), DatabaseError> {
     }
     let exists: bool = sqlx::query_scalar("SELECT to_regclass('sozbricks.profiles') IS NOT NULL AND to_regclass('sozbricks.levels') IS NOT NULL AND to_regclass('sozbricks.game_sessions') IS NOT NULL AND to_regclass('sozbricks.game_results') IS NOT NULL AND to_regclass('sozbricks.level_progress') IS NOT NULL AND to_regclass('sozbricks.reward_ledger') IS NOT NULL")
         .fetch_one(pool).await.map_err(|_| DatabaseError::Schema)?;
-    if !exists {
+    let guest_tables: bool = sqlx::query_scalar("SELECT to_regclass('sozbricks.guest_imports') IS NOT NULL AND to_regclass('sozbricks.guest_progress') IS NOT NULL")
+        .fetch_one(pool).await.map_err(|_| DatabaseError::Schema)?;
+    if !exists || !guest_tables {
         return Err(DatabaseError::Schema);
     }
     Ok(())

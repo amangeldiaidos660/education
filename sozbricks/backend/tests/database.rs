@@ -36,6 +36,8 @@ fn database_config_rejects_invalid_values_without_exposing_credentials() {
         ("DATABASE_ACQUIRE_TIMEOUT_SECONDS", "0"),
         ("DATABASE_HEALTH_TIMEOUT_SECONDS", "6"),
         ("DATABASE_RUN_MIGRATIONS", "yes"),
+        ("RUNTIME_DATABASE_URL", "https://project.supabase.co"),
+        ("RUNTIME_DATABASE_URL", "postgresql://postgres:[YOUR-PASSWORD]@localhost/postgres"),
     ] {
         let mut vars = HashMap::from([("DATABASE_URL".into(), secret_url.into())]);
         vars.insert(key.into(), value.into());
@@ -124,7 +126,7 @@ async fn postgres_schema_and_readiness_contract() {
     }
     let rls: i64 = sqlx::query_scalar("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='sozbricks' AND c.relkind='r' AND c.relrowsecurity")
         .fetch_one(pool).await.unwrap();
-    assert_eq!(rls, 6);
+    assert_eq!(rls, 8);
     let users = [Uuid::new_v4(), Uuid::new_v4()];
     for user in users {
         sqlx::query("INSERT INTO auth.users(id) VALUES($1)")

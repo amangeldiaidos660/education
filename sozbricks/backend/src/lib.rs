@@ -3,6 +3,9 @@ pub mod config;
 pub mod database;
 pub mod docs;
 pub mod error;
+pub mod game_api;
+pub mod profile;
+pub mod progress;
 
 use std::{error::Error as _, sync::Arc, time::Instant};
 
@@ -13,13 +16,13 @@ use axum::{
     http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
 };
 use serde::Serialize;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
 
-use auth::{AuthClient, AuthError, AuthUser};
+use auth::{AuthClient, AuthUser};
 use config::Config;
 use database::{Database, DatabaseError};
 use error::ApiError;
@@ -30,16 +33,16 @@ pub fn app(config: Config) -> Router {
 }
 
 #[derive(Clone)]
-struct AppState {
-    auth: AuthClient,
+pub(crate) struct AppState {
+    pub(crate) auth: AuthClient,
     config: Config,
-    database: Database,
+    pub(crate) database: Database,
 }
 
 pub fn app_with_database(config: Config, database: Database) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(config.cors_origins.clone())
-        .allow_methods([Method::GET, Method::HEAD])
+        .allow_methods([Method::GET, Method::HEAD, Method::POST, Method::PATCH])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
         .expose_headers([HeaderName::from_static("x-request-id")]);
     let auth = AuthClient::new(config.auth.as_ref());
@@ -53,6 +56,16 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .route("/health/ready", get(ready))
         .route("/version", get(version))
         .route("/v1/auth/me", get(auth_me))
+        .route("/v1/profile", get(game_api::get_profile).patch(game_api::patch_profile))
+        .route("/v1/progress", get(game_api::get_progress))
+        .route("/v1/progress/import", post(game_api::import_progress))
+        .route("/v1/levels", get(game_api::get_levels))
+        .route("/v1/history", get(game_api::get_history))
+        .route("/v1/rewards", get(game_api::get_rewards))
+        .route("/v1/game-sessions", post(game_api::start_session))
+        .route("/v1/game-sessions/{id}", get(game_api::get_session))
+        .route("/v1/game-sessions/{id}/finish", post(game_api::finish_session))
+        .route("/v1/game-sessions/{id}/abandon", post(game_api::abandon_session))
         .route("/docs", get(docs::swagger_ui))
         .route("/openapi.json", get(docs::openapi))
         .fallback(not_found)
@@ -68,8 +81,10 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
 async fn auth_me(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-) -> Result<Json<AuthUser>, AuthError> {
-    state.auth.authenticate(&headers).await.map(Json)
+) -> Result<Json<AuthUser>, profile::GameError> {
+    let user = state.auth.authenticate(&headers).await?;
+    if state.database.configured() { profile::ensure(&state.database, &user).await?; }
+    Ok(Json(user))
 }
 
 #[derive(Serialize)]

@@ -16,6 +16,7 @@ use thiserror::Error;
 #[derive(Clone)]
 pub struct DatabaseConfig {
     pub options: PgConnectOptions,
+    pub runtime_options: Option<PgConnectOptions>,
     pub max_connections: u32,
     pub acquire_timeout: Duration,
     pub health_timeout: Duration,
@@ -59,6 +60,7 @@ impl Config {
             "APP_REVISION",
             "RENDER_GIT_COMMIT",
             "DATABASE_URL",
+            "RUNTIME_DATABASE_URL",
             "DATABASE_MAX_CONNECTIONS",
             "DATABASE_ACQUIRE_TIMEOUT_SECONDS",
             "DATABASE_HEALTH_TIMEOUT_SECONDS",
@@ -138,6 +140,7 @@ impl Config {
             }
         };
         let database = match value("DATABASE_URL") {
+            None if value("RUNTIME_DATABASE_URL").is_some() => return Err(invalid("DATABASE_URL", "is required when RUNTIME_DATABASE_URL is set")),
             None => None,
             Some(url) => {
                 if !(url.starts_with("postgresql://") || url.starts_with("postgres://"))
@@ -172,6 +175,16 @@ impl Config {
                     _ => return Err(invalid("DATABASE_RUN_MIGRATIONS", "must be true or false")),
                 };
                 Some(DatabaseConfig {
+                    runtime_options: value("RUNTIME_DATABASE_URL").map(|url| {
+                        if !(url.starts_with("postgres://") || url.starts_with("postgresql://")) || url.contains("YOUR-PASSWORD") {
+                            return Err(invalid("RUNTIME_DATABASE_URL", "must be a PostgreSQL URI with actual credentials"));
+                        }
+                        let runtime = PgConnectOptions::from_str(url).map_err(|_| invalid("RUNTIME_DATABASE_URL", "must be a valid PostgreSQL URI"))?;
+                        if matches!(ssl_mode, PgSslMode::Disable) && !matches!(runtime.get_host(), "127.0.0.1" | "localhost" | "::1") {
+                            return Err(invalid("RUNTIME_DATABASE_URL", "requires TLS outside loopback CI databases"));
+                        }
+                        Ok(runtime.ssl_mode(ssl_mode).application_name("sozbricks-runtime").statement_cache_capacity(0).disable_statement_logging())
+                    }).transpose()?,
                     options: options
                         .ssl_mode(ssl_mode)
                         .application_name("sozbricks-api")
