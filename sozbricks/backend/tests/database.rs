@@ -127,9 +127,37 @@ async fn postgres_schema_and_readiness_contract() {
         };
         assert_eq!(row.get::<i64, _>("reward_lamports"), expected);
     }
-    let rls: i64 = sqlx::query_scalar("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='sozbricks' AND c.relkind='r' AND c.relrowsecurity")
-        .fetch_one(pool).await.unwrap();
-    assert_eq!(rls, 8);
+    let tables = sqlx::query("SELECT c.relname,c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='sozbricks' AND c.relkind='r' ORDER BY c.relname")
+        .fetch_all(pool).await.unwrap();
+    let expected_tables = [
+        "game_results",
+        "game_sessions",
+        "guest_imports",
+        "guest_progress",
+        "level_progress",
+        "levels",
+        "payout_attempts",
+        "profiles",
+        "reward_campaign",
+        "reward_ledger",
+        "reward_payouts",
+        "wallet_bindings",
+        "wallet_challenges",
+    ];
+    assert_eq!(
+        tables
+            .iter()
+            .map(|row| row.get::<String, _>("relname"))
+            .collect::<Vec<_>>(),
+        expected_tables
+    );
+    for table in tables {
+        assert!(
+            table.get::<bool, _>("relrowsecurity"),
+            "RLS must be enabled for {}",
+            table.get::<String, _>("relname")
+        );
+    }
     let users = [Uuid::new_v4(), Uuid::new_v4()];
     for user in users {
         sqlx::query("INSERT INTO auth.users(id) VALUES($1)")
