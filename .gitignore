@@ -2,6 +2,7 @@
 !/.gitignore
 !/week-*/
 !/sozbricks/
+!/.github/
 
 **/node_modules/
 **/target/

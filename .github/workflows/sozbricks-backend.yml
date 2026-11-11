@@ -1,0 +1,153 @@
+name: Söz Bricks backend
+
+on:
+  push:
+    branches: [task/14-tests]
+    paths:
+      - sozbricks/backend/**
+      - sozbricks/render.yaml
+      - .github/workflows/sozbricks-backend.yml
+  pull_request:
+    branches: [task/14-tests]
+    paths:
+      - sozbricks/backend/**
+      - sozbricks/render.yaml
+      - .github/workflows/sozbricks-backend.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sozbricks-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Rust checks
+    permissions:
+      contents: write
+      statuses: write
+    outputs:
+      revision: ${{ steps.prepare.outputs.revision }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+    defaults:
+      run:
+        working-directory: sozbricks/backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+      - name: Prepare SQLx lockfile and formatting in cloud
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cargo +1.98.1 update --workspace
+          cargo +1.98.1 fmt --all
+          if [ "${GITHUB_REF}" = "refs/heads/task/14-tests" ] && [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add Cargo.lock src tests
+            if ! git diff --cached --quiet; then
+              git commit -m 'Prepare database dependencies and formatting in cloud CI'
+              git push origin HEAD:task/14-tests
+            fi
+          else
+            git diff --exit-code -- Cargo.lock src tests
+          fi
+          revision=$(git rev-parse HEAD)
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          if [ "$revision" != "$GITHUB_SHA" ]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$revision" -f state=pending -f context='PostgreSQL cloud validation' -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
+      - name: Check formatting
+        run: cargo +1.98.1 fmt --all -- --check
+      - name: Clippy
+        run: cargo +1.98.1 clippy --locked --all-targets --all-features -- -D warnings
+      - name: Tests
+        run: cargo +1.98.1 test --locked --all-targets --all-features -- --include-ignored
+  container:
+    name: Container smoke test
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.revision }}
+      - name: Prepare Supabase auth fixture
+        run: docker exec "${{ job.services.postgres.id }}" psql -U postgres -v ON_ERROR_STOP=1 -c 'CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY);'
+      - name: Build image
+        run: docker build --build-arg GIT_SHA=${{ needs.check.outputs.revision }} -t sozbricks-api:ci sozbricks/backend
+      - name: Start container
+        run: docker run -d --name sozbricks-api --network host -e PORT=8080 -e DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres -e DATABASE_SSL_MODE=disable sozbricks-api:ci
+      - name: Verify HTTP endpoints
+        env:
+          EXPECTED_REVISION: ${{ needs.check.outputs.revision }}
+        run: |
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/health/live
+          curl --fail --retry 15 --retry-all-errors --retry-delay 2 --max-time 5 http://127.0.0.1:8080/health/ready | python3 -c 'import json, sys; data = json.load(sys.stdin); assert data["database"] == "ok" and data["schema"] == "ok"'
+          curl --fail http://127.0.0.1:8080/version | python3 -c 'import json, os, sys; data = json.load(sys.stdin); assert data["name"] == "sozbricks-api"; assert data["revision"] == os.environ["EXPECTED_REVISION"]'
+      - name: Verify readiness failure and recovery
+        run: |
+          docker stop "${{ job.services.postgres.id }}"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/health/ready)" = "503"
+          curl --fail http://127.0.0.1:8080/health/live
+          docker start "${{ job.services.postgres.id }}"
+          curl --fail --retry 15 --retry-all-errors --retry-delay 2 --max-time 5 http://127.0.0.1:8080/health/ready
+      - name: Verify graceful shutdown
+        run: |
+          docker stop --time 10 sozbricks-api
+          test "$(docker inspect --format '{{.State.ExitCode}}' sozbricks-api)" = "0"
+      - name: Container logs
+        if: always()
+        run: docker logs sozbricks-api
+  report:
+    name: Report prepared commit validation
+    needs: [check, container]
+    if: always() && needs.check.outputs.revision != '' && needs.check.outputs.revision != github.sha
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - name: Report cloud checks to the prepared commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVISION: ${{ needs.check.outputs.revision }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+        run: |
+          state=failure
+          if [ "$CHECK_RESULT" = success ] && [ "$CONTAINER_RESULT" = success ]; then state=success; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$REVISION" -f state="$state" -f context='PostgreSQL cloud validation' -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
