@@ -14,3 +14,4 @@
 **/.env.*
 **/*keypair*.json
 **/id.json
+!/.easignore

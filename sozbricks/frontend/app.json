@@ -17,7 +17,9 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.amangeldiaidos.sozbricks",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -30,6 +32,12 @@
       "expo-splash-screen",
       "expo-asset",
       "expo-web-browser"
-    ]
+    ],
+    "owner": "amangeldiaidos",
+    "extra": {
+      "eas": {
+        "projectId": "c6985c14-6090-4298-80c9-e2d1d9ce3da6"
+      }
+    }
   }
 }
