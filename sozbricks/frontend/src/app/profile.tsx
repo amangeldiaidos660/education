@@ -1,4 +1,5 @@
 import React from "react";
+import { WalletPanel } from "../wallet-panel";
 import { AccountPanel, RewardHistory } from "../account";
 import { Image, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
@@ -15,6 +16,7 @@ export default function Profile() {
   return <Shell><Eyebrow>Твой герой. Твой прогресс.</Eyebrow><Txt size={34} weight="extra">Кабинет игрока ✦</Txt>
     <Txt size={12} color={c.muted}>{account ? "Аккаунт Google · Прогресс сохраняется на сервере" : "Гостевой профиль · Прогресс хранится на этом устройстве"}</Txt>
     <AccountPanel />
+    <WalletPanel />
     <View style={{ flexDirection: wide ? "row" : "column", gap: 22 }}>
       <Card style={{ flex: 1, gap: 16, alignItems: "center" }}>
         <Eyebrow>Исследователь слов</Eyebrow>
@@ -38,11 +40,16 @@ export default function Profile() {
           <Txt color={c.goldText} weight="bold">{next ? `${String(next.id).padStart(2, "0")} · ${next.word}` : "Все уровни пройдены!"}</Txt>
           <Button onPress={() => router.push({ pathname: "/game", params: { level: next?.id ?? 1 } })}>Продолжить →</Button>
         </Card>
-        <Card style={{ gap: 20 }}><View style={{ flexDirection: "row", justifyContent: "space-between" }}><Txt size={23} weight="extra">{account ? "Начислено в базе" : "Демо-баланс"}</Txt><Txt color={c.goldText} size={12}>DEVNET</Txt></View>
+        <Card style={{ gap: 20 }}><View style={{ flexDirection: "row", justifyContent: "space-between" }}><Txt size={23} weight="extra">{account ? "Новые награды" : "Демо-баланс"}</Txt><Txt color={c.goldText} size={12}>DEVNET</Txt></View>
           <Txt size={40} weight="extra">{formatSol(save.demoLamports)} <Txt size={18} color={c.goldText}>devnet SOL</Txt></Txt>
+          {account && <>
+            <Txt size={13}>Ожидает выплаты: {formatSol(syncView?.disk.data?.rewards.pending_lamports ?? 0)} devnet SOL</Txt>
+            <Txt size={13} color={c.accent}>Выплачено: {formatSol(syncView?.disk.data?.rewards.paid_lamports ?? 0)} devnet SOL</Txt>
+            <Txt size={12} color={c.muted}>Это учёт игровых наград, а не текущий баланс личного кошелька.</Txt>
+          </>}
           <DevnetNotice /><View style={{ height: 1, backgroundColor: c.line }} />
-          <Txt size={13} color={c.muted}>{account ? "Сумма подтверждённых сервером начислений. Переводы devnet SOL в кошелёк появятся на следующем этапе." : "Это локальный счётчик. Войдите через Google для сохранения новых результатов на сервере."}</Txt>
-          <Txt size={11} color={c.muted}>Награда учитывается один раз за уровень. Проигрыш не уменьшает накопленное. Гостевой импорт не начисляет награды.</Txt>
+          <Txt size={13} color={c.muted}>{account ? "Награды за новые уровни после запуска выплат. Старые начисления показаны отдельно в истории." : "Это локальный счётчик. Войдите через Google для сохранения новых результатов на сервере."}</Txt>
+          <Txt size={11} color={c.muted}>Награда учитывается только за впервые пройденный новый уровень. Повторное прохождение и гостевой импорт не начисляют награды.</Txt>
         </Card>
       </View>
     </View>

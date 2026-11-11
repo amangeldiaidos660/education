@@ -302,7 +302,7 @@ async fn swagger_and_openapi_describe_only_implemented_routes_and_bearer_auth() 
     assert_eq!(document["info"]["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(document["servers"][0]["url"], "/");
     let paths = document["paths"].as_object().unwrap();
-    assert_eq!(paths.len(), 15);
+    assert_eq!(paths.len(), 18);
     for path in ["/health/live", "/health/ready", "/version", "/v1/auth/me"] {
         assert!(paths[path]["get"]["responses"]["200"].is_object());
     }

@@ -208,6 +208,46 @@ async fn account_progress_import_results_and_runtime_isolation() {
     assert_eq!(other["completed"], json!([]));
     assert_eq!(other["earned_lamports"], 0);
 
+    let old = start(&router, "beta", 1).await;
+    let old_path = format!("/v1/game-sessions/{}/finish", old["id"].as_str().unwrap());
+    let (_, old_result) = request(
+        &router,
+        "POST",
+        &old_path,
+        "beta",
+        Some(result(true, 1200, "АТ")),
+    )
+    .await;
+    assert_eq!(old_result["awarded_lamports"], 0);
+    sqlx::query("UPDATE sozbricks.reward_campaign SET activated_at=now(),program_address='test-program' WHERE id").execute(pool).await.unwrap();
+    let replay = start(&router, "beta", 1).await;
+    let replay_path = format!(
+        "/v1/game-sessions/{}/finish",
+        replay["id"].as_str().unwrap()
+    );
+    let (_, replay_result) = request(
+        &router,
+        "POST",
+        &replay_path,
+        "beta",
+        Some(result(true, 1300, "АТ")),
+    )
+    .await;
+    assert_eq!(replay_result["awarded_lamports"], 0);
+    let guest_replay = start(&router, "alpha", 1).await;
+    let guest_path = format!(
+        "/v1/game-sessions/{}/finish",
+        guest_replay["id"].as_str().unwrap()
+    );
+    let (_, guest_result) = request(
+        &router,
+        "POST",
+        &guest_path,
+        "alpha",
+        Some(result(true, 1200, "АТ")),
+    )
+    .await;
+    assert_eq!(guest_result["awarded_lamports"], 0);
     let attempt = start(&router, "alpha", 2).await;
     let id = attempt["id"].as_str().unwrap();
     let request_id = attempt["request_id"].clone();
@@ -240,6 +280,18 @@ async fn account_progress_import_results_and_runtime_isolation() {
             &path,
             "alpha",
             Some(result(true, -1, "АНА"))
+        )
+        .await
+        .0,
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+    assert_eq!(
+        request(
+            &router,
+            "POST",
+            &path,
+            "alpha",
+            Some(result(true, 1130, "wrong"))
         )
         .await
         .0,
@@ -359,7 +411,7 @@ async fn account_progress_import_results_and_runtime_isolation() {
     assert_eq!(rewards["total_lamports"], 100000000);
     assert_eq!(rewards["solana_payments_enabled"], false);
     let (_, other) = request(&router, "GET", "/v1/history", "beta", None).await;
-    assert_eq!(other["items"], json!([]));
+    assert_eq!(other["items"].as_array().unwrap().len(), 2);
     assert_eq!(
         request(&router, "GET", "/v1/history?limit=101", "alpha", None)
             .await
@@ -391,7 +443,73 @@ async fn account_progress_import_results_and_runtime_isolation() {
         .fetch_one(pool)
         .await
         .unwrap();
-    assert_eq!(row.get::<i64, _>("count"), 3);
+    assert_eq!(row.get::<i64, _>("count"), 4);
+    let queued: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM sozbricks.reward_payouts WHERE user_id=$1")
+            .bind(users[0])
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert_eq!(queued, 1);
+    let worker_pool = database.worker_pool().unwrap();
+    let worker_role: String = sqlx::query_scalar("SELECT current_user::text")
+        .fetch_one(worker_pool)
+        .await
+        .unwrap();
+    assert_eq!(worker_role, "sozbricks_payout_worker");
+    assert!(
+        sqlx::query("SELECT * FROM auth.users")
+            .execute(worker_pool)
+            .await
+            .is_err()
+    );
+    use ring::signature::{Ed25519KeyPair, KeyPair};
+    let key = Ed25519KeyPair::from_seed_unchecked(&[8; 32]).unwrap();
+    let address = bs58::encode(key.public_key().as_ref()).into_string();
+    let (status, challenge) = request(
+        &router,
+        "POST",
+        "/v1/wallet/challenge",
+        "alpha",
+        Some(json!({"address":address})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{challenge}");
+    let proof = json!({"challenge_id":challenge["challenge_id"],"signature":bs58::encode(key.sign(challenge["message"].as_str().unwrap().as_bytes()).as_ref()).into_string()});
+    assert_eq!(
+        request(
+            &router,
+            "POST",
+            "/v1/wallet/verify",
+            "beta",
+            Some(proof.clone())
+        )
+        .await
+        .0,
+        StatusCode::CONFLICT
+    );
+    assert_eq!(
+        request(
+            &router,
+            "POST",
+            "/v1/wallet/verify",
+            "alpha",
+            Some(proof.clone())
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        request(&router, "POST", "/v1/wallet/verify", "alpha", Some(proof))
+            .await
+            .0,
+        StatusCode::CONFLICT
+    );
+    let (_, binding) = request(&router, "GET", "/v1/wallet", "alpha", None).await;
+    assert_eq!(binding["address"], address);
+    let (_, binding) = request(&router, "GET", "/v1/wallet", "beta", None).await;
+    assert!(binding["address"].is_null());
     worker.abort();
     let _ = worker.await;
     drop(router);

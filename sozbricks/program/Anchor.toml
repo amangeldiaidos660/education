@@ -1,0 +1,13 @@
+[toolchain]
+anchor_version = "0.31.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+sozbricks_rewards = "3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/sozbricks-treasury-devnet.json"

@@ -4,9 +4,11 @@ pub mod database;
 pub mod docs;
 pub mod error;
 pub mod game_api;
+pub mod payouts;
 pub mod profile;
 pub mod progress;
 pub mod treasury;
+pub mod wallet;
 
 use std::{error::Error as _, sync::Arc, time::Instant};
 
@@ -67,6 +69,9 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .route("/v1/levels", get(game_api::get_levels))
         .route("/v1/history", get(game_api::get_history))
         .route("/v1/rewards", get(game_api::get_rewards))
+        .route("/v1/wallet", get(wallet::get))
+        .route("/v1/wallet/challenge", post(wallet::challenge))
+        .route("/v1/wallet/verify", post(wallet::verify))
         .route("/v1/game-sessions", post(game_api::start_session))
         .route("/v1/game-sessions/{id}", get(game_api::get_session))
         .route(

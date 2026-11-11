@@ -13,6 +13,7 @@ const RPC_URL: &str = "https://api.devnet.solana.com";
 const GENESIS_HASH: &str = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 
 pub struct Treasury {
+    key: Ed25519KeyPair,
     address: String,
     proof_message: String,
     proof_signature: String,
@@ -45,7 +46,7 @@ impl Treasury {
         Self::from_bytes(&bytes, expected_address)
     }
 
-    fn from_bytes(bytes: &[u8], expected_address: &str) -> Result<Self, &'static str> {
+    pub(crate) fn from_bytes(bytes: &[u8], expected_address: &str) -> Result<Self, &'static str> {
         let secret: Zeroizing<Vec<u8>> = Zeroizing::new(
             serde_json::from_slice(bytes).map_err(|_| "must contain a Solana JSON keypair")?,
         );
@@ -72,11 +73,24 @@ impl Treasury {
             .build()
             .map_err(|_| "could not initialize Devnet RPC client")?;
         Ok(Self {
+            key,
             address,
             proof_message,
             proof_signature: bs58::encode(proof.as_ref()).into_string(),
             client,
         })
+    }
+
+    pub fn address(&self) -> &str {
+        &self.address
+    }
+
+    pub(crate) fn sign(&self, message: &[u8]) -> [u8; 64] {
+        self.key
+            .sign(message)
+            .as_ref()
+            .try_into()
+            .expect("Ed25519 signature length")
     }
 
     async fn status(&self, rpc_url: &str) -> Result<TreasuryStatus, ApiError> {
@@ -151,7 +165,9 @@ pub(crate) async fn get_status(
         code: "treasury_not_configured",
         message: "Treasury keypair file and expected address are not configured",
     })?;
-    treasury.status(RPC_URL).await.map(Json)
+    let mut status = treasury.status(RPC_URL).await?;
+    status.payments_enabled = state.config.payments_enabled;
+    Ok(Json(status))
 }
 
 #[cfg(test)]

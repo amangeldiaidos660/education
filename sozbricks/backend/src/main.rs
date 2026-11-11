@@ -50,10 +50,16 @@ async fn run() -> Result<(), Box<dyn Error>> {
         }
     });
     tracing::info!(address = %listener.local_addr()?, revision = %config.revision, "API started");
+    let payout_worker = tokio::spawn(sozbricks_api::payouts::run(
+        config.clone(),
+        database.clone(),
+    ));
     let result = axum::serve(listener, app_with_database(config, database.clone()))
         .with_graceful_shutdown(shutdown_signal())
         .await;
     worker.abort();
+    payout_worker.abort();
+    let _ = payout_worker.await;
     let _ = worker.await;
     let _ = tokio::time::timeout(Duration::from_secs(5), database.close()).await;
     result?;

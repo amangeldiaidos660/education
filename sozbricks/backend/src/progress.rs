@@ -170,7 +170,7 @@ pub async fn summary(tx: &mut Transaction<'_, Postgres>, user: Uuid) -> Result<V
         .iter()
         .map(|level| (level["id"].to_string(), level["best_score"].clone()))
         .collect();
-    let balance: i64 = sqlx::query_scalar("SELECT coalesce(sum(amount_lamports),0)::bigint FROM sozbricks.reward_ledger WHERE user_id=$1").bind(user).fetch_one(&mut **tx).await?;
+    let balance: i64 = sqlx::query_scalar("SELECT coalesce(sum(amount_lamports),0)::bigint FROM sozbricks.reward_ledger WHERE user_id=$1 AND payable").bind(user).fetch_one(&mut **tx).await?;
     Ok(
         json!({"completed":completed,"recorded_completed":verified,"imported_completed":imported,"best":best,
         "best_score":items.iter().filter_map(|level|level["best_score"].as_i64()).max().unwrap_or(0),
@@ -208,11 +208,24 @@ pub async fn rewards(
     limit: i64,
     offset: i64,
 ) -> Result<Value, GameError> {
-    let rows = sqlx::query("SELECT id,level_id,session_id,amount_lamports,created_at::text FROM sozbricks.reward_ledger WHERE user_id=$1 ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3")
+    let rows = sqlx::query("SELECT r.id,r.level_id,r.session_id,r.amount_lamports,r.created_at::text,coalesce(p.status,'historical') AS status,p.signature,p.recipient,p.receipt_address,p.error_code FROM sozbricks.reward_ledger r LEFT JOIN sozbricks.reward_payouts p ON p.reward_id=r.id WHERE r.user_id=$1 ORDER BY r.created_at DESC,r.id DESC LIMIT $2 OFFSET $3")
         .bind(user).bind(limit).bind(offset).fetch_all(&mut **tx).await?;
-    let items: Vec<_> = rows.iter().map(|row|json!({"id":row.get::<Uuid,_>("id"),"level_id":row.get::<i16,_>("level_id"),"session_id":row.get::<Uuid,_>("session_id"),"amount_lamports":row.get::<i64,_>("amount_lamports"),"created_at":row.get::<String,_>("created_at"),"status":"recorded_not_paid"})).collect();
-    let total: i64 = sqlx::query_scalar("SELECT coalesce(sum(amount_lamports),0)::bigint FROM sozbricks.reward_ledger WHERE user_id=$1").bind(user).fetch_one(&mut **tx).await?;
+    let items: Vec<_> = rows.iter().map(|row| {
+        let signature: Option<String> = row.get("signature");
+        json!({"id":row.get::<Uuid,_>("id"),"level_id":row.get::<i16,_>("level_id"),"session_id":row.get::<Uuid,_>("session_id"),"amount_lamports":row.get::<i64,_>("amount_lamports"),"created_at":row.get::<String,_>("created_at"),"status":row.get::<String,_>("status"),"recipient":row.get::<Option<String>,_>("recipient"),"signature":signature,"explorer_url":signature.as_ref().map(|s|format!("https://explorer.solana.com/tx/{s}?cluster=devnet")),"receipt_address":row.get::<Option<String>,_>("receipt_address"),"error_code":row.get::<Option<String>,_>("error_code")})
+    }).collect();
+    let totals = sqlx::query("SELECT coalesce(sum(r.amount_lamports) FILTER (WHERE r.payable),0)::bigint AS earned,coalesce(sum(r.amount_lamports) FILTER (WHERE p.status='paid'),0)::bigint AS paid,coalesce(sum(r.amount_lamports) FILTER (WHERE r.payable AND p.status<>'paid'),0)::bigint AS pending,coalesce(sum(r.amount_lamports) FILTER (WHERE NOT r.payable),0)::bigint AS historical FROM sozbricks.reward_ledger r LEFT JOIN sozbricks.reward_payouts p ON p.reward_id=r.id WHERE r.user_id=$1")
+        .bind(user).fetch_one(&mut **tx).await?;
+    let address: Option<String> =
+        sqlx::query_scalar("SELECT address FROM sozbricks.wallet_bindings WHERE user_id=$1")
+            .bind(user)
+            .fetch_optional(&mut **tx)
+            .await?;
+    let activated: Option<String> =
+        sqlx::query_scalar("SELECT activated_at::text FROM sozbricks.reward_campaign WHERE id")
+            .fetch_one(&mut **tx)
+            .await?;
     Ok(
-        json!({"items":items,"limit":limit,"offset":offset,"total_lamports":total,"solana_payments_enabled":false}),
+        json!({"items":items,"limit":limit,"offset":offset,"total_lamports":totals.get::<i64,_>("earned"),"paid_lamports":totals.get::<i64,_>("paid"),"pending_lamports":totals.get::<i64,_>("pending"),"historical_lamports":totals.get::<i64,_>("historical"),"wallet_address":address,"activated_at":activated,"solana_payments_enabled":false}),
     )
 }

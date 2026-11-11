@@ -33,6 +33,8 @@ pub struct AuthConfig {
 
 #[derive(Clone)]
 pub struct Config {
+    pub program_address: Option<solana_pubkey::Pubkey>,
+    pub payments_enabled: bool,
     pub auth: Option<AuthConfig>,
     pub treasury: Option<Arc<crate::treasury::Treasury>>,
     pub database: Option<DatabaseConfig>,
@@ -73,6 +75,8 @@ impl Config {
             "AUTH_TIMEOUT_SECONDS",
             "SOLANA_TREASURY_KEYPAIR_PATH",
             "SOLANA_TREASURY_ADDRESS",
+            "SOLANA_REWARDS_PROGRAM_ID",
+            "SOLANA_PAYMENTS_ENABLED",
         ] {
             match env::var(variable) {
                 Ok(value) => {
@@ -89,6 +93,32 @@ impl Config {
 
     pub fn from_values(values: &HashMap<String, String>) -> Result<Self, ConfigError> {
         let value = |key: &str| values.get(key).map(|v| v.trim());
+        let program_address = value("SOLANA_REWARDS_PROGRAM_ID")
+            .filter(|address| !address.is_empty())
+            .map(|address| {
+                let key = solana_pubkey::Pubkey::from_str(address).map_err(|_| {
+                    invalid(
+                        "SOLANA_REWARDS_PROGRAM_ID",
+                        "must be a Solana program address",
+                    )
+                })?;
+                if key == solana_pubkey::pubkey!("3qbR1eZRqXUWroWKKYhbDmR3FfqTHfqSU8zZSxtANzYh")
+                    || key == solana_pubkey::Pubkey::default()
+                    || key == solana_pubkey::pubkey!("BPFLoaderUpgradeab1e11111111111111111111111")
+                {
+                    return Err(invalid(
+                        "SOLANA_REWARDS_PROGRAM_ID",
+                        "must be the deployed rewards program, not a placeholder",
+                    ));
+                }
+                Ok(key)
+            })
+            .transpose()?;
+        let payments_enabled = match value("SOLANA_PAYMENTS_ENABLED").unwrap_or("false") {
+            "true" => true,
+            "false" => false,
+            _ => return Err(invalid("SOLANA_PAYMENTS_ENABLED", "must be true or false")),
+        };
         let treasury = match (
             value("SOLANA_TREASURY_KEYPAIR_PATH"),
             value("SOLANA_TREASURY_ADDRESS"),
@@ -320,6 +350,17 @@ impl Config {
             ));
         }
         Ok(Self {
+            program_address,
+            payments_enabled: if payments_enabled
+                && (treasury.is_none() || program_address.is_none())
+            {
+                return Err(invalid(
+                    "SOLANA_PAYMENTS_ENABLED",
+                    "requires treasury and rewards program configuration",
+                ));
+            } else {
+                payments_enabled
+            },
             auth,
             treasury,
             database,

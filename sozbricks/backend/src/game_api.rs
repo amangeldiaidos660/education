@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::{Postgres, Row, Transaction, postgres::PgRow};
 use std::sync::Arc;
+use unicode_normalization::UnicodeNormalization;
 use uuid::Uuid;
 
 use crate::{
@@ -19,7 +20,7 @@ use crate::{
     progress::{self, GuestImport},
 };
 
-async fn context(
+pub(crate) async fn context(
     state: &AppState,
     headers: &HeaderMap,
 ) -> Result<(AuthUser, Transaction<'static, Postgres>), GameError> {
@@ -28,7 +29,7 @@ async fn context(
     Ok((user, tx))
 }
 
-fn body<T>(value: Result<Json<T>, JsonRejection>) -> Result<T, GameError> {
+pub(crate) fn body<T>(value: Result<Json<T>, JsonRejection>) -> Result<T, GameError> {
     value.map(|Json(value)| value).map_err(|error| {
         GameError::new(
             error.status(),
@@ -137,7 +138,9 @@ pub(crate) async fn get_rewards(
 ) -> Result<Json<Value>, GameError> {
     let (limit, offset) = page(query)?;
     let (user, mut tx) = context(&state, &headers).await?;
-    let result = progress::rewards(&mut tx, user.id, limit, offset).await?;
+    let mut result = progress::rewards(&mut tx, user.id, limit, offset).await?;
+    result["solana_payments_enabled"] =
+        json!(state.config.payments_enabled && !result["activated_at"].is_null());
     tx.commit().await?;
     Ok(Json(result))
 }
@@ -325,13 +328,26 @@ pub(crate) async fn finish_session(
         .try_get("reward_snapshot")
         .map_err(|_| GameError::conflict("Legacy session is not supported; start a new attempt"))?;
     let won = result.won;
+    let word: String = row
+        .try_get("word_snapshot")
+        .map_err(|_| GameError::conflict("Start a new session"))?;
+    if won
+        && (result.duration_seconds == 0
+            || result.collected_word.nfc().collect::<String>() != word.nfc().collect::<String>())
+    {
+        return Err(GameError::invalid(
+            "A victory requires the complete session word and positive duration",
+        ));
+    }
+    let eligible: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM sozbricks.reward_campaign c JOIN sozbricks.game_sessions s ON s.id=$3 WHERE c.id AND c.activated_at IS NOT NULL AND s.started_at>=c.activated_at) AND NOT EXISTS(SELECT 1 FROM sozbricks.level_progress WHERE user_id=$1 AND level_id=$2 AND completed_at IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM sozbricks.guest_progress WHERE user_id=$1 AND level_id=$2 AND completed)")
+        .bind(user.id).bind(level).bind(id).fetch_one(&mut *tx).await?;
     sqlx::query("INSERT INTO sozbricks.game_results(session_id,user_id,level_id,won,collected_word,score,duration_ticks,result_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8)")
         .bind(id).bind(user.id).bind(level).bind(won).bind(result.collected_word).bind(result.score).bind((result.duration_seconds * 120) as i32).bind(&digest).execute(&mut *tx).await?;
     sqlx::query("UPDATE sozbricks.game_sessions SET status='completed',finished_at=now() WHERE id=$1 AND user_id=$2").bind(id).bind(user.id).execute(&mut *tx).await?;
     sqlx::query("INSERT INTO sozbricks.level_progress(user_id,level_id,best_score,completed_at,first_win_session_id) VALUES($1,$2,$3,CASE WHEN $4 THEN now() ELSE NULL END,CASE WHEN $4 THEN $5 ELSE NULL END) ON CONFLICT(user_id,level_id) DO UPDATE SET best_score=greatest(sozbricks.level_progress.best_score,excluded.best_score),completed_at=coalesce(sozbricks.level_progress.completed_at,excluded.completed_at),first_win_session_id=coalesce(sozbricks.level_progress.first_win_session_id,excluded.first_win_session_id),updated_at=now()")
         .bind(user.id).bind(level).bind(result.score).bind(won).bind(id).execute(&mut *tx).await?;
-    if won && amount > 0 {
-        sqlx::query("INSERT INTO sozbricks.reward_ledger(user_id,level_id,session_id,amount_lamports) VALUES($1,$2,$3,$4) ON CONFLICT(user_id,level_id) DO NOTHING")
+    if won && amount > 0 && eligible {
+        sqlx::query("INSERT INTO sozbricks.reward_ledger(user_id,level_id,session_id,amount_lamports,payable) VALUES($1,$2,$3,$4,true) ON CONFLICT(user_id,level_id) DO NOTHING")
             .bind(user.id).bind(level).bind(id).bind(amount).execute(&mut *tx).await?;
     }
     let result = finished(&mut tx, user.id, id, &digest, false).await?;

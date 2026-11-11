@@ -12,7 +12,7 @@ export default function Levels() {
   const columns = width >= 1050 ? 4 : width >= 650 ? 3 : 2;
   const cardWidth = (Math.min(width, 1380) - (width >= 850 ? 96 : 40) - (columns - 1) * 14) / columns;
   return <Shell><Eyebrow>Ваш путь к новым словам</Eyebrow><Txt size={34} weight="extra">Выберите уровень</Txt>
-    <Txt color={c.muted}>{save.completed.length} / 24 пройдено · Повторяйте открытые уровни</Txt>
+    <Txt color={c.muted}>{save.completed.length} / 24 пройдено · Повторяйте открытые уровни без нового начисления</Txt>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }}>
       {levels.map(level => {
         const done = save.completed.includes(level.id);

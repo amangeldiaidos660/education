@@ -12,7 +12,9 @@ export type Finished = Outcome & { session_id: string; awarded_lamports: number;
 export type History = { items: { session_id: string; level_id: number; word: string; score: number; won: boolean;
   duration_seconds: number; recorded_at: string }[]; imported_history: Result[] };
 export type Rewards = { total_lamports: number; solana_payments_enabled: boolean;
-  items: { id: string; level_id: number; amount_lamports: number; created_at: string; status: string }[] };
+  paid_lamports?: number; pending_lamports?: number; historical_lamports?: number; wallet_address?: string | null; activated_at?: string | null;
+  items: { id: string; level_id: number; amount_lamports: number; created_at: string; status: string;
+    recipient?: string | null; signature?: string | null; explorer_url?: string | null; error_code?: string | null }[] };
 export type AccountData = { profile: Profile; progress: Progress; levels: ServerLevel[]; history: History; rewards: Rewards };
 export type Api = <T>(path: string, method?: string, body?: unknown) => Promise<T>;
 
@@ -40,7 +42,7 @@ export function createApi(token: (refresh: boolean) => Promise<string>, transpor
         if (!response.ok) {
           const messages: Record<number, string> = { 401: "Сессия истекла. Войдите через Google снова.",
             403: "Уровень пока закрыт или доступ запрещён.", 404: "Попытка не найдена для этого аккаунта.",
-            409: "Конфликт сохранения: попытка уже завершена или гостевой прогресс уже импортирован.",
+            409: path.startsWith("/v1/wallet") ? "Запрос подписи устарел, уже использован или адрес привязан к другому аккаунту. Повторите подключение через несколько секунд." : "Конфликт сохранения: попытка уже завершена или гостевой прогресс уже импортирован.",
             410: "Время серверной попытки истекло (2 часа).", 422: "Сервер отклонил данные результата.",
             503: "Сервер или база временно недоступны. Повторите позже." };
           throw new ApiError(response.status, value?.error?.code ?? "request_failed",

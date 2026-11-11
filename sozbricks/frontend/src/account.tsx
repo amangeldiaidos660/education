@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextInput, View } from "react-native";
+import { Linking, TextInput, View } from "react-native";
 import { authConfigured, nativeGo, useAuth } from "./auth";
 import { useStore } from "./state";
 import { Button, Card, Txt, usePalette } from "./ui";
@@ -60,11 +60,17 @@ export function RewardHistory() {
   const { syncView } = useStore();
   const rewards = syncView?.disk.data?.rewards;
   if (!rewards) return null;
-  return <Card style={{ gap: 14 }}><Txt size={23} weight="extra">Начисления в базе</Txt>
-    <Txt size={12} color={c.muted}>Тестовый учёт devnet SOL. Переводов в кошелёк пока нет.</Txt>
-    {!rewards.items.length && <Txt color={c.muted}>Начислений пока нет. Завершите уровень после входа.</Txt>}
-    {rewards.items.slice(0, 24).map(item => <View key={item.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-      <Txt size={13}>Уровень {item.level_id}</Txt><Txt size={13} color={c.goldText}>+{formatSol(item.amount_lamports)} devnet SOL · не выплачено</Txt>
+  const statuses: Record<string, string> = { historical: "История до запуска · без выплаты", awaiting_wallet: "Ожидает привязки кошелька", queued: "В очереди", submitted: "Ожидает подтверждения сети", paid: "Выплачено", retry: "Повторная проверка / отправка", blocked: "Нужна проверка администратором", recorded_not_paid: "История до запуска · без выплаты" };
+  return <Card style={{ gap: 14 }}><Txt size={23} weight="extra">История наград</Txt>
+    <Txt size={12} color={c.muted}>Тестовые SOL / Devnet. За ранее пройденные уровни и повторную игру награды не начисляются.</Txt>
+    {!rewards.solana_payments_enabled && <Txt size={12} color={c.goldText}>Отправка выплат пока выключена.</Txt>}
+    {!rewards.items.length && <Txt color={c.muted}>Начислений пока нет. Пройдите новый уровень после включения наград.</Txt>}
+    {rewards.items.slice(0, 24).map(item => <View key={item.id} style={{ gap: 6, borderTopWidth: 1, borderColor: c.line, paddingTop: 12 }}>
+      <Txt size={14}>Уровень {item.level_id} · {formatSol(item.amount_lamports)} devnet SOL</Txt>
+      <Txt size={12} color={item.status === "paid" ? c.accent : c.muted}>{statuses[item.status] ?? item.status}</Txt>
+      {!!item.recipient && <Txt size={11} selectable color={c.muted}>Получатель: {item.recipient}</Txt>}
+      {!!item.error_code && <Txt size={12} color={c.goldText}>{item.status === "blocked" ? "Выплата остановлена для проверки." : "Перевод ещё не подтверждён. Сервер проверит состояние и повторит попытку автоматически."}</Txt>}
+      {!!item.signature && <Button small secondary onPress={() => { void Linking.openURL(`https://explorer.solana.com/tx/${encodeURIComponent(item.signature!)}?cluster=devnet`); }}>Транзакция в Explorer</Button>}
     </View>)}
   </Card>;
 }

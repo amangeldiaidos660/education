@@ -97,7 +97,7 @@ fn base_spec() -> Value {
                             "signer_verified":{"type":"boolean","enum":[true]},
                             "proof_message":{"type":"string"},
                             "proof_signature":{"type":"string"},
-                            "payments_enabled":{"type":"boolean","enum":[false]}
+                            "payments_enabled":{"type":"boolean"}
                         }
                     })),
                     "503": response("treasury_not_configured, solana_rpc_unavailable or solana_cluster_mismatch", error())
@@ -271,8 +271,27 @@ pub async fn openapi() -> Json<Value> {
     schemas.insert("FinishResponse".into(),object(json!({"session_id":uuid(),"level_id":level_id(),"won":boolean(),"score":number(),"collected_word":text(),"duration_seconds":number(),"source":{"type":"string","enum":["frontend_reported"]},"awarded_lamports":number(),"repeated":boolean(),"progress":reference("Progress")}), &["session_id","level_id","won","score","collected_word","duration_seconds","source","awarded_lamports","repeated","progress"]));
     schemas.insert("HistoryResult".into(),object(json!({"session_id":uuid(),"level_id":level_id(),"won":boolean(),"score":number(),"word":text(),"collected_word":text(),"duration_seconds":number(),"recorded_at":text(),"source":{"type":"string","enum":["frontend_reported"]}}), &["session_id","level_id","won","score","word","collected_word","duration_seconds","recorded_at","source"]));
     schemas.insert("HistoryResponse".into(),object(json!({"items":array(reference("HistoryResult")),"limit":number(),"offset":number(),"imported_history":array(reference("GuestResult")),"imported_history_verified":{"type":"boolean","enum":[false]}}), &["items","limit","offset","imported_history","imported_history_verified"]));
-    schemas.insert("Reward".into(),object(json!({"id":uuid(),"level_id":level_id(),"session_id":uuid(),"amount_lamports":number(),"created_at":text(),"status":{"type":"string","enum":["recorded_not_paid"]}}), &["id","level_id","session_id","amount_lamports","created_at","status"]));
-    schemas.insert("RewardsResponse".into(),object(json!({"items":array(reference("Reward")),"limit":number(),"offset":number(),"total_lamports":number(),"solana_payments_enabled":{"type":"boolean","enum":[false]}}), &["items","limit","offset","total_lamports","solana_payments_enabled"]));
+    schemas.insert("Wallet".into(),object(json!({"address":{"type":"string","nullable":true},"cluster":{"type":"string","enum":["devnet"]}}), &["address","cluster"]));
+    schemas.insert(
+        "WalletAddress".into(),
+        object(json!({"address":text()}), &["address"]),
+    );
+    schemas.insert(
+        "WalletChallenge".into(),
+        object(
+            json!({"challenge_id":uuid(),"message":text(),"expires_at":text()}),
+            &["challenge_id", "message", "expires_at"],
+        ),
+    );
+    schemas.insert(
+        "WalletProof".into(),
+        object(
+            json!({"challenge_id":uuid(),"signature":text()}),
+            &["challenge_id", "signature"],
+        ),
+    );
+    schemas.insert("Reward".into(),object(json!({"id":uuid(),"level_id":level_id(),"amount_lamports":number(),"created_at":text(),"recipient":{"type":"string","nullable":true},"signature":{"type":"string","nullable":true},"explorer_url":{"type":"string","nullable":true},"error_code":{"type":"string","nullable":true},"status":{"type":"string","enum":["historical","awaiting_wallet","queued","submitted","paid","retry","blocked"]}}), &["id","level_id","amount_lamports","created_at","status"]));
+    schemas.insert("RewardsResponse".into(),object(json!({"items":array(reference("Reward")),"limit":number(),"offset":number(),"total_lamports":number(),"paid_lamports":number(),"pending_lamports":number(),"historical_lamports":number(),"wallet_address":{"type":"string","nullable":true},"activated_at":{"type":"string","nullable":true},"solana_payments_enabled":{"type":"boolean"}}), &["items","limit","offset","total_lamports","solana_payments_enabled"]));
     let paths = spec["paths"].as_object_mut().unwrap();
     paths.insert("/v1/profile".into(),json!({
         "get":operation("getProfile","Profile","Профиль и статистика","Вызывайте после входа или восстановления сессии. Профиль создаётся автоматически; ранее изменённые имя и герой не перезаписываются данными Google.","ProfileResponse"),
@@ -283,10 +302,13 @@ pub async fn openapi() -> Json<Value> {
     paths.insert("/v1/progress/import".into(),json!({"post":with_body(operation("importGuestProgress","Progress","Однократно перенести гостевое сохранение","После подтверждённого входа отправьте старый Save из sozbricks.local.v1 и новый import_id UUID. Сохраните этот UUID и неизменный payload для повторов. Один импорт на аккаунт; другой payload после импорта вернёт 409. completed объединяются, best сохраняется по максимуму. history максимум 100. Неизвестные поля Save (dark, sound, vibration, demoLamports) игнорируются; demoLamports не переносится в начисления. Импортированные победы открывают уровни, но наград за импорт нет. Локальный гостевой save очищайте/помечайте перенесённым только после 200, чтобы не импортировать его другому аккаунту. После переключения аккаунта загружайте его /v1/progress, не смешивайте кэши.","ImportResponse"),"GuestImport",json!({"import_id":"7ce08d91-b2d7-4638-ab7a-9eb353106d45","save":{"version":1,"hero":"alikhan","completed":[1],"best":{"1":1200},"history":[]}}))}));
     paths.insert("/v1/game-sessions".into(),json!({"post":with_body(operation("startSession","Game sessions","Создать попытку перед запуском игры","Один запрос перед партией. Генерируйте request_id UUID один раз на попытку; сетевой повтор с тем же request_id возвращает ту же попытку. Для новой игры нужен новый UUID. Другая level_id при повторном UUID даёт 409. Одновременно одна активная попытка на аккаунт; новая попытка закрывает предыдущую как abandoned. Срок — 2 часа. seed совпадает с текущей формулой фронта level_id*12345+17, но сервер физику не воспроизводит.","Session"),"StartSession",json!({"level_id":1,"request_id":"6e7e83e4-938b-46fd-bb5d-85ed264d26f7"}))}));
     paths.insert("/v1/game-sessions/{id}".into(),json!({"get":operation("getSession","Game sessions","Состояние своей попытки","Для восстановления идентификатора и статуса. Полное состояние шариков на сервере не хранится. Чужой UUID возвращает 404.","Session")}));
-    paths.insert("/v1/game-sessions/{id}/finish".into(),json!({"post":with_body(operation("finishSession","Game sessions","Сохранить готовый результат партии","Один запрос после победы/проигрыша. Фронт сам вычисляет won, score, collected_word и целые duration_seconds (Math.floor(game.elapsed)). Бэкенд проверяет типы, диапазоны, владельца и статус попытки; победу, буквы и очки не пересчитывает. Первая победа, переданная через этот маршрут на каждом уровне, создаёт одно начисление по сохранённой сервером сумме уровня; повторное прохождение обновляет best, но не баланс. Импорт не лишает награды за первую последующую победу через API. Тот же payload для завершённой попытки возвращает 200 repeated=true, другую версию результата сервер не принимает (409). В одной транзакции сохраняются результат, прогресс и ledger. При сетевой ошибке повторяйте тот же id и payload. Реальных SOL-выплат нет.","FinishResponse"),"FinishSession",json!({"won":true,"score":1200,"collected_word":"АТ","duration_seconds":35}))}));
+    paths.insert("/v1/game-sessions/{id}/finish".into(),json!({"post":with_body(operation("finishSession","Game sessions","Сохранить готовый результат партии","Один запрос после победы/проигрыша. Фронт сам вычисляет won, score, collected_word и целые duration_seconds (Math.floor(game.elapsed)). Бэкенд проверяет владельца, статус, слово и положительную длительность победы. Награда только за ещё не пройденный уровень в сессии, начатой после активации. Ранее завершённые и импортированные уровни награды не дают. Физика игры на сервере не воспроизводится. Тот же payload для завершённой попытки возвращает 200 repeated=true, другую версию результата сервер не принимает (409). В одной транзакции сохраняются результат, прогресс и ledger. При сетевой ошибке повторяйте тот же id и payload. Новые подходящие награды ставятся в постоянную очередь выплат тестовых SOL через программу Devnet.","FinishResponse"),"FinishSession",json!({"won":true,"score":1200,"collected_word":"АТ","duration_seconds":35}))}));
     paths.insert("/v1/game-sessions/{id}/abandon".into(),json!({"post":operation("abandonSession","Game sessions","Закрыть незавершённую попытку","Вызывайте при выходе из игры, если не сохраняете проигрыш через finish. Тело не требуется. Повтор безопасен. Completed-попытку закрыть нельзя.","Session")}));
     paths.insert("/v1/history".into(),json!({"get":operation("getHistory","Progress","История переданных партий и старое сохранение","items — страницы новых результатов, сначала свежие. imported_history — отдельные старые записи, максимум 100, возвращаются без пагинации; не смешивайте их с серверными ID. Все результаты сообщены фронтендом; античит-проверки нет.","HistoryResponse")}));
-    paths.insert("/v1/rewards".into(),json!({"get":operation("getRewards","Progress","Начисления за первые победы","amount_lamports — целое число; 1 SOL = 1000000000 lamports. total_lamports — общий итог независимо от страницы. status=recorded_not_paid. Этот маршрут ничего не переводит и не принимает сумму от клиента.","RewardsResponse")}));
+    paths.insert("/v1/rewards".into(),json!({"get":operation("getRewards","Progress","Начисления за первые победы","amount_lamports — целое число; 1 SOL = 1000000000 lamports. total_lamports — общий итог независимо от страницы. Статусы: historical, awaiting_wallet, queued, submitted, paid, retry, blocked. Старые записи historical не выплачиваются. Этот маршрут ничего не переводит и не принимает сумму от клиента.","RewardsResponse")}));
+    paths.insert("/v1/wallet".into(),json!({"get":operation("getWallet","Wallet","Привязанный кошелёк","Личный адрес текущего Google-аккаунта. Только Devnet.","Wallet")}));
+    paths.insert("/v1/wallet/challenge".into(),json!({"post":with_body(operation("walletChallenge","Wallet","Сообщение для подписи","Одноразовое сообщение, срок пять минут, привязано к аккаунту и адресу.","WalletChallenge"),"WalletAddress",json!({"address":"personal-wallet-address"}))}));
+    paths.insert("/v1/wallet/verify".into(),json!({"post":with_body(operation("verifyWallet","Wallet","Подтвердить кошелёк","Проверяет подпись Ed25519 в base58. Повторное использование challenge отклоняется.","Wallet"),"WalletProof",json!({"challenge_id":"uuid","signature":"base58-signature"}))}));
     for path in ["/v1/history", "/v1/rewards"] {
         paths.get_mut(path).unwrap()["get"]["parameters"] = json!([
             {"name":"limit","in":"query","schema":{"type":"integer","default":20,"minimum":1,"maximum":100}},

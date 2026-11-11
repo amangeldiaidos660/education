@@ -18,6 +18,7 @@ pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
 #[derive(Clone)]
 pub struct Database {
+    worker: Option<PgPool>,
     pool: Option<PgPool>,
     runtime: Option<PgPool>,
     initialized: Arc<AtomicBool>,
@@ -40,6 +41,20 @@ pub enum DatabaseError {
 impl Database {
     pub fn new(config: Option<&DatabaseConfig>) -> Self {
         Self {
+            worker: config.map(|config| {
+                PgPoolOptions::new()
+                    .max_connections(1)
+                    .acquire_timeout(config.acquire_timeout)
+                    .after_connect(|connection, _| {
+                        Box::pin(async move {
+                            sqlx::query("SET ROLE sozbricks_payout_worker")
+                                .execute(connection)
+                                .await?;
+                            Ok(())
+                        })
+                    })
+                    .connect_lazy_with(config.options.clone())
+            }),
             runtime: config.map(|config| {
                 PgPoolOptions::new()
                     .max_connections(config.max_connections)
@@ -77,6 +92,14 @@ impl Database {
 
     pub fn configured(&self) -> bool {
         self.pool.is_some()
+    }
+
+    pub fn worker_pool(&self) -> Option<&PgPool> {
+        if self.initialized.load(Ordering::Acquire) {
+            self.worker.as_ref()
+        } else {
+            None
+        }
     }
 
     pub fn pool(&self) -> Option<&PgPool> {
@@ -145,6 +168,9 @@ impl Database {
     }
 
     pub async fn close(&self) {
+        if let Some(pool) = &self.worker {
+            pool.close().await;
+        }
         if let Some(pool) = &self.runtime {
             pool.close().await;
         }
