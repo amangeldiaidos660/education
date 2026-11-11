@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     env,
     net::{IpAddr, SocketAddr},
+    sync::Arc,
     time::Duration,
 };
 
@@ -33,6 +34,7 @@ pub struct AuthConfig {
 #[derive(Clone)]
 pub struct Config {
     pub auth: Option<AuthConfig>,
+    pub treasury: Option<Arc<crate::treasury::Treasury>>,
     pub database: Option<DatabaseConfig>,
     pub address: SocketAddr,
     pub cors_origins: Vec<HeaderValue>,
@@ -69,6 +71,8 @@ impl Config {
             "SUPABASE_URL",
             "SUPABASE_PUBLISHABLE_KEY",
             "AUTH_TIMEOUT_SECONDS",
+            "SOLANA_TREASURY_KEYPAIR_PATH",
+            "SOLANA_TREASURY_ADDRESS",
         ] {
             match env::var(variable) {
                 Ok(value) => {
@@ -85,6 +89,24 @@ impl Config {
 
     pub fn from_values(values: &HashMap<String, String>) -> Result<Self, ConfigError> {
         let value = |key: &str| values.get(key).map(|v| v.trim());
+        let treasury = match (
+            value("SOLANA_TREASURY_KEYPAIR_PATH"),
+            value("SOLANA_TREASURY_ADDRESS"),
+        ) {
+            (None, None) => None,
+            (Some(path), Some(address)) if !path.is_empty() && !address.is_empty() => {
+                Some(Arc::new(
+                    crate::treasury::Treasury::load(path, address)
+                        .map_err(|reason| invalid("SOLANA_TREASURY_KEYPAIR_PATH", reason))?,
+                ))
+            }
+            _ => {
+                return Err(invalid(
+                    "SOLANA_TREASURY_KEYPAIR_PATH",
+                    "and SOLANA_TREASURY_ADDRESS must both be provided and nonempty",
+                ));
+            }
+        };
         let auth_timeout = Duration::from_secs(number(
             value("AUTH_TIMEOUT_SECONDS"),
             "AUTH_TIMEOUT_SECONDS",
@@ -299,6 +321,7 @@ impl Config {
         }
         Ok(Self {
             auth,
+            treasury,
             database,
             address: SocketAddr::new(host, port),
             cors_origins,

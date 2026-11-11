@@ -302,7 +302,7 @@ async fn swagger_and_openapi_describe_only_implemented_routes_and_bearer_auth() 
     assert_eq!(document["info"]["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(document["servers"][0]["url"], "/");
     let paths = document["paths"].as_object().unwrap();
-    assert_eq!(paths.len(), 14);
+    assert_eq!(paths.len(), 15);
     for path in ["/health/live", "/health/ready", "/version", "/v1/auth/me"] {
         assert!(paths[path]["get"]["responses"]["200"].is_object());
     }
@@ -336,6 +336,58 @@ async fn swagger_and_openapi_describe_only_implemented_routes_and_bearer_auth() 
                 }
             }
         }
+    }
+}
+
+#[tokio::test]
+async fn treasury_is_optional_and_exposes_no_transfer_route() {
+    let router = app(config(&[]));
+    let response = router
+        .clone()
+        .oneshot(
+            Request::get("/health/treasury")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(
+        body(response).await["error"]["code"],
+        "treasury_not_configured"
+    );
+    let response = router
+        .oneshot(
+            Request::post("/health/treasury")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
+}
+
+#[test]
+fn treasury_configuration_requires_both_values_and_redacts_paths() {
+    for values in [
+        vec![("SOLANA_TREASURY_ADDRESS", "test-address")],
+        vec![("SOLANA_TREASURY_KEYPAIR_PATH", "private-missing-key.json")],
+        vec![
+            ("SOLANA_TREASURY_KEYPAIR_PATH", "private-missing-key.json"),
+            ("SOLANA_TREASURY_ADDRESS", "test-address"),
+        ],
+    ] {
+        let values = values
+            .into_iter()
+            .map(|(key, value)| (key.to_owned(), value.to_owned()))
+            .collect();
+        let error = Config::from_values(&values)
+            .err()
+            .expect("invalid treasury config must fail")
+            .to_string();
+        assert!(error.contains("SOLANA_TREASURY_KEYPAIR_PATH"));
+        assert!(!error.contains("private-missing-key.json"));
+        assert!(!error.contains("test-address"));
     }
 }
 

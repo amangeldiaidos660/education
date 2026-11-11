@@ -6,6 +6,7 @@ pub mod error;
 pub mod game_api;
 pub mod profile;
 pub mod progress;
+pub mod treasury;
 
 use std::{error::Error as _, sync::Arc, time::Instant};
 
@@ -54,6 +55,7 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
     Router::new()
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
+        .route("/health/treasury", get(treasury::get_status))
         .route("/version", get(version))
         .route("/v1/auth/me", get(auth_me))
         .route(

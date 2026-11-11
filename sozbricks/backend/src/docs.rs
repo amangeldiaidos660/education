@@ -80,6 +80,29 @@ fn base_spec() -> Value {
                     "503": response("Database or schema is not ready", reference("Readiness"))
                 }
             }},
+            "/health/treasury": {"get": {
+                "operationId": "getTreasuryStatus", "tags": ["Infrastructure"], "summary": "Devnet treasury key and finalized balance",
+                "description": "Public read-only check. Loads the configured Secret File at startup, validates its expected address and signs a domain-separated diagnostic message. Confirms the Devnet genesis hash and reads finalized balance. No transfers or reward payments. proof_signature is a base58 Ed25519 signature of UTF-8 proof_message; it changes after a process restart. Private keys are never returned.",
+                "responses": {
+                    "200": response("Treasury signer and Devnet RPC are available", json!({
+                        "type":"object",
+                        "required":["status","cluster","address","balance_lamports","slot","commitment","signer_verified","proof_message","proof_signature","payments_enabled"],
+                        "properties":{
+                            "status":{"type":"string","enum":["ready"]},
+                            "cluster":{"type":"string","enum":["devnet"]},
+                            "address":{"type":"string"},
+                            "balance_lamports":{"type":"integer","format":"int64","minimum":0},
+                            "slot":{"type":"integer","format":"int64","minimum":0},
+                            "commitment":{"type":"string","enum":["finalized"]},
+                            "signer_verified":{"type":"boolean","enum":[true]},
+                            "proof_message":{"type":"string"},
+                            "proof_signature":{"type":"string"},
+                            "payments_enabled":{"type":"boolean","enum":[false]}
+                        }
+                    })),
+                    "503": response("treasury_not_configured, solana_rpc_unavailable or solana_cluster_mismatch", error())
+                }
+            }},
             "/version": {"get": {
                 "operationId": "getVersion", "tags": ["Infrastructure"], "summary": "Build version and commit",
                 "responses": {"200": response("Public build metadata", reference("Version"))}
