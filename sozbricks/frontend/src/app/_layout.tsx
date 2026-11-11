@@ -1,4 +1,5 @@
 import React from "react";
+import { AuthProvider } from "../auth";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
@@ -19,5 +20,5 @@ export default function Layout() {
     NunitoSans_800ExtraBold: require("@expo-google-fonts/nunito-sans/800ExtraBold/NunitoSans_800ExtraBold.ttf"),
   });
   if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: "#081c33", justifyContent: "center" }}><ActivityIndicator color="#19e1c2" /></View>;
-  return <StoreProvider><Navigation /></StoreProvider>;
+  return <AuthProvider><StoreProvider><Navigation /></StoreProvider></AuthProvider>;
 }

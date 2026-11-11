@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Platform, Pressable, useWindowDimensions, View } from "react-native";
+import type { NativeTouchEvent } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, G, LinearGradient, Rect, Stop, Text as SvgText } from "react-native-svg";
@@ -8,7 +9,9 @@ import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from "expo-a
 import { Button, Card, DevnetNotice, Eyebrow, Shell, Txt, usePalette } from "../ui";
 import { useStore } from "../state";
 import { ballSpeed, createGame, Game, H, launch, movePaddle, PADDLE_W, PADDLE_Y, step, togglePause, W } from "../game/engine";
-import { letters, Level, levels } from "../game/words";
+import { letters, Level, formatSol } from "../game/words";
+import { randomUUID } from "expo-crypto";
+import { errorText, Session } from "../api";
 
 function clock(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
@@ -21,30 +24,58 @@ function snapshotGame(game: Game): Game {
 
 export default function GameRoute() {
   const { level: param } = useLocalSearchParams<{ level?: string }>();
-  const { save } = useStore();
+  const { save, levels, account, sync, syncView } = useStore();
+  const [round, setRound] = useState(0);
+  const restart = useCallback(() => setRound(value => value + 1), []);
   const level = levels.find(l => l.id === Number(param ?? 1));
+  if (account && !syncView?.disk.data) return <Shell><Card><Txt>Загружаем профиль и уровни…</Txt>
+    <Txt>{syncView?.error}</Txt><Button disabled={syncView?.busy} onPress={() => { void sync?.refresh().catch(() => {}); }}>Повторить</Button>
+    <Button secondary onPress={() => router.replace("/profile")}>В кабинет</Button></Card></Shell>;
   if (!level || (level.id > 1 && !save.completed.includes(level.id - 1))) return <Shell>
     <Card><Txt size={24} weight="extra">Уровень пока недоступен</Txt><Button onPress={() => router.replace("/levels")}>Выбрать уровень</Button></Card></Shell>;
-  return <Play key={level.id} level={level} />;
+  return <SessionRound key={`${syncView?.disk.owner ?? "guest"}:${level.id}:${round}`} level={level} onRestart={restart} />;
 }
 
-function Play({ level }: { level: Level }) {
+function SessionRound({ level, onRestart }: { level: Level; onRestart: () => void }) {
+  const { sync } = useStore();
+  const [requestId] = useState(() => sync ? randomUUID() : "guest");
+  const [session, setSession] = useState<Session | null>(null);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    if (!sync) return;
+    let alive = true;
+    void sync.start(level.id, requestId).then(value => { if (alive) setSession(value); })
+      .catch(error => { if (alive) setError(errorText(error)); });
+    return () => { alive = false; };
+  }, [sync, level.id, requestId, retry]);
+  if (sync && !session) return <Shell><Card><Txt>{error || "Создаём попытку на сервере…"}</Txt>
+    {!!error && <Button onPress={() => { setError(""); setRetry(value => value + 1); }}>Повторить</Button>}
+    <Button secondary onPress={() => router.replace("/profile")}>В кабинет</Button></Card></Shell>;
+  const rules = session ? { ...level, word: session.word, speed: session.speed, reward: session.reward_lamports / 1e9 } : level;
+  return <Play level={rules} session={session} onRestart={onRestart} />;
+}
+
+function Play({ level, session, onRestart }: { level: Level; session: Session | null; onRestart: () => void }) {
   const c = usePalette();
-  const { save, finish } = useStore();
+  const { save, finish, account, sync, syncView, levels } = useStore();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const wide = width >= 1100;
-  const game = useRef(createGame(level));
+  const game = useRef(createGame(level, session?.seed));
   const keys = useRef(new Set<string>());
-  const [round, setRound] = useState(0);
-  const [snapshot, setSnapshot] = useState(() => createGame(level));
-  const [runId, setRunId] = useState(() => `${Date.now()}-${Math.random()}`);
-  const [awarded, setAwarded] = useState(false);
+  const [snapshot, setSnapshot] = useState(() => createGame(level, session?.seed));
+  const [runId] = useState(() => session?.id ?? `${Date.now()}-${Math.random()}`);
+  const [localAwarded, setAwarded] = useState<number | null>(null);
+  const receipt = syncView?.disk.receipt;
+  const awarded = receipt?.session_id === runId ? receipt.awarded_lamports : localAwarded;
+  const [saveError, setSaveError] = useState("");
   const settings = useRef(save);
   const finishRef = useRef(finish);
   useEffect(() => { settings.current = save; finishRef.current = finish; }, [save, finish]);
   const recorded = useRef(false);
   const player = useAudioPlayer(require("../../assets/bounce.wav"), { downloadFirst: true, keepAudioSessionActive: true });
+  const playerRef = useRef(player);
   const audioReady = useRef(false);
   const audioBusy = useRef(false);
   const audioError = useRef(false);
@@ -60,8 +91,9 @@ function Play({ level }: { level: Level }) {
   useEffect(() => {
     let alive = true;
     let foreground = AppState.currentState !== "background" && AppState.currentState !== "inactive";
-    player.volume = 1;
-    player.muted = false;
+    playerRef.current = player;
+    playerRef.current.volume = 1;
+    playerRef.current.muted = false;
     if (Platform.OS === "web") {
       audioReady.current = true;
       return () => { audioReady.current = false; };
@@ -90,19 +122,31 @@ function Play({ level }: { level: Level }) {
   const refresh = () => setSnapshot(snapshotGame(game.current));
   const pause = () => { togglePause(game.current); keys.current.clear(); refresh(); };
   const restart = () => {
-    game.current = createGame(level);
-    keys.current.clear(); recorded.current = false;
-    setAwarded(false);
-    setRunId(`${Date.now()}-${Math.random()}`);
-    setRound(n => n + 1);
-    refresh();
+    if (sync) void sync.abandon(runId).then(onRestart).catch(error => setSaveError(errorText(error)));
+    else onRestart();
+  };
+  const retrySave = () => {
+    setSaveError("");
+    void finishRef.current(snapshotGame(game.current), runId).then(setAwarded).catch(error => setSaveError(errorText(error)));
   };
   const autoPause = useCallback(() => {
     const current = game.current;
     keys.current.clear();
     if (current.phase === "playing" || current.phase === "ready") { togglePause(current); setSnapshot(snapshotGame(current)); }
   }, []);
-  useFocusEffect(useCallback(() => () => autoPause(), [autoPause]));
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const departed = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    if (departed.current) onRestart();
+    return () => {
+      autoPause();
+      leaveTimer.current = setTimeout(() => {
+        departed.current = true;
+        if (sync) void sync.abandon(runId).catch(() => {});
+      }, 0);
+    };
+  }, [autoPause, sync, runId, onRestart]));
   useEffect(() => {
     const sub = AppState.addEventListener("change", state => { if (state !== "active") autoPause(); });
     return () => sub.remove();
@@ -155,8 +199,8 @@ function Play({ level }: { level: Level }) {
         if (before !== current.catches && settings.current.vibration && Platform.OS !== "web") void Haptics.selectionAsync().catch(() => {});
         if (["won", "lost"].includes(current.phase) && !recorded.current) {
           recorded.current = true;
-          setAwarded(!settings.current.completed.includes(level.id));
-          finishRef.current(current, runId);
+          void finishRef.current(snapshotGame(current), runId).then(amount => { if (alive) setAwarded(amount); })
+            .catch(error => { if (alive) setSaveError(errorText(error)); });
         }
         setSnapshot(snapshotGame(current));
       } else accumulator = 0;
@@ -164,10 +208,10 @@ function Play({ level }: { level: Level }) {
     };
     request = requestAnimationFrame(frame);
     return () => { alive = false; cancelAnimationFrame(request); };
-  }, [round, player, runId, level.id]);
+  }, [player, runId, level.id]);
 
   const slotSize = Math.min(42, (boardWidth - 20 - (target.length - 1) * 5) / target.length);
-  const touch = useRef<{ id: number; x: number; y: number; distance: number; at: number } | null>(null);
+  const touch = useRef<{ id: NativeTouchEvent["identifier"]; x: number; y: number; distance: number; at: number } | null>(null);
   const slotRow = <View style={{ flexDirection: "row", justifyContent: "center", gap: 5 }}>
     {target.map((letter, i) => {
       const caught = g.collected[i];
@@ -268,12 +312,18 @@ function Play({ level }: { level: Level }) {
             <Txt size={12} color={c.muted}>{g.score} очков · {clock(g.elapsed)}</Txt>
           </>}
           {g.phase === "won" && <View style={{ backgroundColor: c.soft, padding: 12, borderRadius: 12, gap: 5, width: "100%" }}>
-            <Txt color={c.goldText} size={13} weight="bold">{!awarded
-              ? "Повторное прохождение · без награды" : `Демо-награда +${level.reward.toLocaleString("ru-RU")} devnet SOL`}</Txt><DevnetNotice /></View>}
+            <Txt color={c.goldText} size={13} weight="bold">{awarded === null ? "Начисление ожидает сохранения" : awarded === 0
+              ? "Повторное прохождение · без награды" : `${account ? "Учтено в базе" : "Демо-награда"} +${formatSol(awarded)} devnet SOL`}</Txt><DevnetNotice /></View>}
+          {g.phase !== "paused" && <View style={{ gap: 8, width: "100%" }}>
+            <Txt size={12}>{awarded !== null ? account ? "Результат сохранён на сервере" : "Результат сохранён на устройстве"
+              : saveError || syncView?.error || "Сохраняем результат…"}</Txt>
+            {awarded === null && <Button small secondary disabled={syncView?.busy} onPress={retrySave}>Повторить сохранение</Button>}
+            {!!syncView?.disk.attempt?.rejected && <Button small secondary onPress={() => router.replace("/profile")}>Разобрать ошибку в кабинете</Button>}
+          </View>}
           <View style={{ width: "100%", gap: 9 }}>
             {g.phase === "paused" ? <Button onPress={pause}>Продолжить</Button>
-              : g.phase === "won" && level.id < levels.length ? <Button onPress={() => router.replace({ pathname: "/game", params: { level: level.id + 1 } })}>Следующий уровень →</Button>
-                : g.phase === "won" ? <Button onPress={() => router.replace("/profile")}>Все слова собраны! →</Button> : <Button onPress={restart}>Повторить уровень</Button>}
+              : g.phase === "won" && level.id < levels.length ? <Button disabled={account && awarded === null} onPress={() => router.replace({ pathname: "/game", params: { level: level.id + 1 } })}>Следующий уровень →</Button>
+                : g.phase === "won" ? <Button onPress={() => router.replace("/profile")}>Все слова собраны! →</Button> : <Button disabled={account && awarded === null} onPress={restart}>Повторить уровень</Button>}
             {g.phase === "paused" && <Button secondary onPress={restart}>Начать заново</Button>}
             <Button secondary onPress={() => router.replace("/levels")}>К уровням</Button>
           </View>

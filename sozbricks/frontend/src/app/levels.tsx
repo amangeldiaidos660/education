@@ -3,12 +3,12 @@ import { Pressable, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { Card, Eyebrow, Shell, Txt, usePalette } from "../ui";
 import { useStore } from "../state";
-import { letters, levels } from "../game/words";
+import { letters } from "../game/words";
 
 export default function Levels() {
   const c = usePalette();
   const { width } = useWindowDimensions();
-  const { save } = useStore();
+  const { save, levels } = useStore();
   const columns = width >= 1050 ? 4 : width >= 650 ? 3 : 2;
   const cardWidth = (Math.min(width, 1380) - (width >= 850 ? 96 : 40) - (columns - 1) * 14) / columns;
   return <Shell><Eyebrow>Ваш путь к новым словам</Eyebrow><Txt size={34} weight="extra">Выберите уровень</Txt>

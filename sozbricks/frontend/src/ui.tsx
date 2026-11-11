@@ -49,7 +49,7 @@ export function Eyebrow({ children }: { children: string }) {
 
 export function DevnetNotice() {
   const c = usePalette();
-  return <View style={{ gap: 6 }}><Txt size={13} color={c.goldText} weight="bold">DEVNET · Локальная демонстрация</Txt>
+  return <View style={{ gap: 6 }}><Txt size={13} color={c.goldText} weight="bold">DEVNET · Тестовые начисления</Txt>
     <Txt size={13} color={c.muted}>Devnet SOL — тестовая валюта, не реальные деньги.</Txt>
     <Txt size={11} color={c.muted}>Кошелёк не подключён. Начисления не отправляются в блокчейн.</Txt></View>;
 }
@@ -64,7 +64,7 @@ export function Logo() {
 
 export function Shell({ children, game = false }: { children: React.ReactNode; game?: boolean }) {
   const c = usePalette();
-  const { save, update, storageError } = useStore();
+  const { save, update, storageError, account } = useStore();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
@@ -78,9 +78,10 @@ export function Shell({ children, game = false }: { children: React.ReactNode; g
           <Txt size={14} weight="bold" color={pathname === n.path ? c.accent : c.muted}>{n.title}</Txt></Pressable>)}
         <Pressable accessibilityRole="button" accessibilityLabel="Переключить тему" onPress={() => update({ dark: !save.dark })} style={{ padding: 8 }}>
           <Txt size={25} color={c.goldText}>{save.dark ? "☀" : "☾"}</Txt></Pressable>
-        <Pressable accessibilityRole="link" accessibilityLabel="Кабинет игрока" onPress={() => router.navigate("/profile")}>
+        <Pressable accessibilityRole="link" accessibilityLabel={account ? "Кабинет игрока" : "Войти через Google"} onPress={() => router.navigate("/profile")}>
           <View style={{ width: 42, height: 42, borderRadius: 21, overflow: "hidden", borderWidth: 2, borderColor: c.teal, backgroundColor: "#06232c" }}>
             <Image source={characters[save.hero]} style={{ width: 50, height: 75, position: "absolute", top: 0, left: -4 }} /></View>
+          {!game && <Txt size={10} color={c.accent}>{account ? "Аккаунт" : "Войти"}</Txt>}
         </Pressable>
       </View>
     </View>

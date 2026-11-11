@@ -28,7 +28,8 @@
       "expo-router",
       "expo-font",
       "expo-splash-screen",
-      "expo-asset"
+      "expo-asset",
+      "expo-web-browser"
     ]
   }
 }

@@ -1,18 +1,20 @@
 import React from "react";
+import { AccountPanel, RewardHistory } from "../account";
 import { Image, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { Button, Card, characters, DevnetNotice, Eyebrow, Shell, Txt, usePalette } from "../ui";
 import { useStore } from "../state";
-import { formatSol, levels } from "../game/words";
+import { formatSol } from "../game/words";
 
 export default function Profile() {
   const c = usePalette();
-  const { save, update } = useStore();
+  const { save, update, levels, account, syncView } = useStore();
   const { width } = useWindowDimensions();
   const wide = width >= 850;
   const next = levels.find(l => !save.completed.includes(l.id));
   return <Shell><Eyebrow>Твой герой. Твой прогресс.</Eyebrow><Txt size={34} weight="extra">Кабинет игрока ✦</Txt>
-    <Txt size={12} color={c.muted}>Локальный профиль · Прогресс хранится на этом устройстве</Txt>
+    <Txt size={12} color={c.muted}>{account ? "Аккаунт Google · Прогресс сохраняется на сервере" : "Гостевой профиль · Прогресс хранится на этом устройстве"}</Txt>
+    <AccountPanel />
     <View style={{ flexDirection: wide ? "row" : "column", gap: 22 }}>
       <Card style={{ flex: 1, gap: 16, alignItems: "center" }}>
         <Eyebrow>Исследователь слов</Eyebrow>
@@ -20,8 +22,8 @@ export default function Profile() {
         <Txt size={30} weight="extra">{save.hero === "alikhan" ? "Алихан" : "Айару"}</Txt>
         <Txt size={12} color={c.muted}>Твой спутник в мире казахских слов</Txt>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Button small secondary={save.hero !== "alikhan"} onPress={() => update({ hero: "alikhan" })}>Алихан</Button>
-          <Button small secondary={save.hero !== "aiaru"} onPress={() => update({ hero: "aiaru" })}>Айару</Button>
+          <Button small disabled={account && (!syncView?.disk.data || syncView.busy)} secondary={save.hero !== "alikhan"} onPress={() => update({ hero: "alikhan" })}>Алихан</Button>
+          <Button small disabled={account && (!syncView?.disk.data || syncView.busy)} secondary={save.hero !== "aiaru"} onPress={() => update({ hero: "aiaru" })}>Айару</Button>
         </View>
       </Card>
       <View style={{ flex: 1.4, gap: 22 }}>
@@ -36,14 +38,15 @@ export default function Profile() {
           <Txt color={c.goldText} weight="bold">{next ? `${String(next.id).padStart(2, "0")} · ${next.word}` : "Все уровни пройдены!"}</Txt>
           <Button onPress={() => router.push({ pathname: "/game", params: { level: next?.id ?? 1 } })}>Продолжить →</Button>
         </Card>
-        <Card style={{ gap: 20 }}><View style={{ flexDirection: "row", justifyContent: "space-between" }}><Txt size={23} weight="extra">Демо-баланс</Txt><Txt color={c.goldText} size={12}>DEVNET</Txt></View>
+        <Card style={{ gap: 20 }}><View style={{ flexDirection: "row", justifyContent: "space-between" }}><Txt size={23} weight="extra">{account ? "Начислено в базе" : "Демо-баланс"}</Txt><Txt color={c.goldText} size={12}>DEVNET</Txt></View>
           <Txt size={40} weight="extra">{formatSol(save.demoLamports)} <Txt size={18} color={c.goldText}>devnet SOL</Txt></Txt>
           <DevnetNotice /><View style={{ height: 1, backgroundColor: c.line }} />
-          <Txt size={13} color={c.muted}>Кошелёк и получение наград появятся на следующем этапе. Это локальный счётчик, а не баланс Solana.</Txt>
-          <Txt size={11} color={c.muted}>Демо-награда выдаётся только за первую победу на каждом уровне. При проигрыше накопленное сохраняется.</Txt>
+          <Txt size={13} color={c.muted}>{account ? "Сумма подтверждённых сервером начислений. Переводы devnet SOL в кошелёк появятся на следующем этапе." : "Это локальный счётчик. Войдите через Google для сохранения новых результатов на сервере."}</Txt>
+          <Txt size={11} color={c.muted}>Награда учитывается один раз за уровень. Проигрыш не уменьшает накопленное. Гостевой импорт не начисляет награды.</Txt>
         </Card>
       </View>
     </View>
+    <RewardHistory />
     <Card style={{ gap: 18 }}><Txt size={24} weight="extra">История игр</Txt>
       {!save.history.length && <Txt color={c.muted}>Пока здесь пусто. Первая история начнётся с первой попытки.</Txt>}
       {save.history.slice(0, 15).map(r => <View key={r.id} style={{ borderTopWidth: 1, borderColor: c.line, paddingTop: 14, gap: 6 }}>

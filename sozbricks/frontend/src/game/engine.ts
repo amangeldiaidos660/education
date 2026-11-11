@@ -28,11 +28,11 @@ function bricks(wave: number): Brick[] {
     hp: wave > 1 && i % 7 === 0 ? 2 : 1, gold: (i + wave) % 5 === 0 }));
 }
 
-export function createGame(level: Level): Game {
+export function createGame(level: Level, seed = level.id * 12345 + 17): Game {
   return { level, phase: "ready", resumePhase: "ready", paddle: W / 2,
     balls: [{ id: 0, x: W / 2, y: PADDLE_Y - R - 2, vx: 0, vy: 0 }],
     bricks: bricks(0), drops: [], particles: [], collected: [], score: 0, elapsed: 0,
-    hits: 0, wave: 0, nextId: 1, seed: level.id * 12345 + 17,
+    hits: 0, wave: 0, nextId: 1, seed,
     notice: "Запустите шарик", noticeUntil: 3, reason: "", catches: 0, bounce: false,
     nextNeededAt: 0, nextNeededHit: 1, nextDropAt: 0 };
 }

@@ -3,13 +3,12 @@ import { Image, Pressable, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { Button, Card, characters, Eyebrow, Shell, Txt, usePalette } from "../ui";
 import { useStore } from "../state";
-import { levels } from "../game/words";
 
 export default function Home() {
   const c = usePalette();
   const { width } = useWindowDimensions();
   const wide = width >= 850;
-  const { save } = useStore();
+  const { save, levels } = useStore();
   const next = levels.find(l => !save.completed.includes(l.id));
   return <Shell>
     <View style={{ flexDirection: wide ? "row" : "column", gap: 36, alignItems: "center", paddingVertical: wide ? 20 : 0 }}>
@@ -29,7 +28,7 @@ export default function Home() {
           </View></Card>
         </Pressable>
         <View style={{ flexDirection: "row", gap: 28 }}>
-          <Pressable onPress={() => router.push("/profile")}><Txt color={c.muted} size={13}>Мой персонаж ↗</Txt></Pressable>
+          <Pressable onPress={() => router.push("/profile")}><Txt color={c.muted} size={13}>Учётная запись ↗</Txt></Pressable>
           <Pressable onPress={() => router.push("/settings")}><Txt color={c.muted} size={13}>Настройки ⚙</Txt></Pressable>
         </View>
       </View>
