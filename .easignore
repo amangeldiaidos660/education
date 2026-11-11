@@ -1,8 +1,8 @@
 /*
 !/.easignore
-!/sozbricks/
+!/sozbricks
 /sozbricks/*
-!/sozbricks/frontend/
+!/sozbricks/frontend
 **/node_modules/
 **/.expo/
 **/dist/
