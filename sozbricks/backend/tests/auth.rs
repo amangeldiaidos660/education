@@ -19,6 +19,7 @@ fn user() -> Value {
     json!({
         "id": USER_ID, "role": "authenticated", "email": "player@example.com",
         "is_anonymous": false, "app_metadata": {"providers": ["google"]},
+        "identities": [{"provider":"google","user_id":USER_ID,"identity_data":{"sub":"google-test-sub"}}],
         "user_metadata": {"full_name": "  Қазақ ойыншысы  ", "admin": true},
         "refresh_token": "must-not-be-returned"
     })
@@ -146,6 +147,16 @@ async fn anonymous_non_google_and_privileged_identities_are_rejected() {
     let mut missing_id = user();
     missing_id["id"] = json!("00000000-0000-0000-0000-000000000000");
     variants.push(missing_id);
+    let mut no_identity = user();
+    no_identity["identities"] = json!([]);
+    variants.push(no_identity);
+    let mut forged_subject = user();
+    forged_subject["identities"] = json!([]);
+    forged_subject["user_metadata"]["sub"] = json!("google-test-sub");
+    variants.push(forged_subject);
+    let mut foreign_identity = user();
+    foreign_identity["identities"][0]["user_id"] = json!("00000000-0000-0000-0000-000000000001");
+    variants.push(foreign_identity);
     for body in variants {
         let fixture = fixture(
             StatusCode::OK,
@@ -196,6 +207,54 @@ async fn rejected_tokens_and_upstream_failures_have_distinct_errors() {
         );
         assert!(!body.to_string().contains("upstream-secret"));
         assert!(!body.to_string().contains("test-token"));
+    }
+}
+
+#[tokio::test]
+async fn admin_routes_reject_google_users_without_server_allowlist() {
+    let fixture = fixture(
+        StatusCode::OK,
+        user().to_string(),
+        Duration::ZERO,
+        Duration::from_secs(2),
+    )
+    .await;
+    for path in [
+        "/v1/admin/overview",
+        "/v1/admin/accounts",
+        "/v1/admin/rewards",
+    ] {
+        let response = fixture
+            .router
+            .clone()
+            .oneshot(
+                Request::get(path)
+                    .header(header::AUTHORIZATION, "Bearer test-token")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        let response = fixture
+            .router
+            .clone()
+            .oneshot(Request::get(path).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let response = fixture
+            .router
+            .clone()
+            .oneshot(
+                Request::post(path)
+                    .header(header::AUTHORIZATION, "Bearer test-token")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
     }
 }
 

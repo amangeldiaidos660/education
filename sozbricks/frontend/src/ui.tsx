@@ -3,6 +3,7 @@ import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextStyle, us
 import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "./state";
+import { devnetMessage } from "./devnet-status";
 
 export const characters = { alikhan: require("../assets/characters/alikhan.png"), aiaru: require("../assets/characters/aiaru.png") };
 export function usePalette() {
@@ -49,9 +50,12 @@ export function Eyebrow({ children }: { children: string }) {
 
 export function DevnetNotice() {
   const c = usePalette();
+  const { account, syncView } = useStore();
+  const rewards = syncView?.disk.data?.rewards;
+  const message = devnetMessage(account, rewards);
   return <View style={{ gap: 6 }}><Txt size={13} color={c.goldText} weight="bold">DEVNET · Тестовые начисления</Txt>
     <Txt size={13} color={c.muted}>Devnet SOL — тестовая валюта, не реальные деньги.</Txt>
-    <Txt size={11} color={c.muted}>Кошелёк не подключён. Начисления не отправляются в блокчейн.</Txt></View>;
+    <Txt size={11} color={c.muted}>{message}</Txt></View>;
 }
 
 export function Logo() {

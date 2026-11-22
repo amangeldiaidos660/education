@@ -60,7 +60,7 @@ fn base_spec() -> Value {
         "info": {
             "title": "Söz Bricks API",
             "version": env!("CARGO_PKG_VERSION"),
-            "description": "Игра и подсчёт очков выполняются на фронтенде. API хранит переданный результат, профиль, прогресс и начисления. Запросов во время физики игры и проверки replay нет. Google-вход запускается приложением через Supabase Auth. В Authorize вставляйте session.access_token без слова Bearer. Все /v1 маршруты требуют подтверждённый Google-linked аккаунт. При первом обращении создаётся sozbricks.profiles; auth.users управляется самим Supabase. Если Auth и DATABASE_URL относятся к разным проектам, ответ будет 503 auth_database_mismatch. SOL-выплат пока нет: earned_lamports — учёт в БД, не кошелёк."
+            "description": "Игра и подсчёт очков выполняются на фронтенде. API хранит переданный результат, профиль, прогресс и начисления. Запросов во время физики игры и проверки replay нет. Google-вход запускается приложением через Supabase Auth. В Authorize вставляйте session.access_token без слова Bearer. Все /v1 маршруты требуют подтверждённый Google-linked аккаунт. При первом обращении создаётся sozbricks.profiles; auth.users управляется самим Supabase. Если Auth и DATABASE_URL относятся к разным проектам, ответ будет 503 auth_database_mismatch. Новые награды выплачиваются программой Solana Devnet; earned_lamports — учёт начислений, не текущий баланс кошелька. Постоянная запись игрока восстанавливается по проверенной Google identity после удаления записи Auth. Для новых выплат после восстановления требуется повторная подпись кошелька."
         },
         "servers": [{"url": "/", "description": "Current API deployment"}],
         "tags": [
@@ -327,5 +327,12 @@ pub async fn openapi() -> Json<Value> {
         "{}\n\nПорядок подключения фронта: Google OAuth → /v1/auth/me → при наличии гостевого Save /v1/progress/import → /v1/profile и /v1/levels → POST /v1/game-sessions → игра целиком на клиенте → POST finish → обновить состояние из progress ответа. Никакого потока движений или WebSocket. Сетевой сбой сохраняйте в локальной очереди под user_id; при смене аккаунта не отправляйте чужие результаты. Гость продолжает локальную игру.\n\nРабота с БД: миграции используют DATABASE_URL, игровые операции — отдельный пул с SET ROLE sozbricks_runtime и RLS по подтверждённому user_id. При отсутствии RUNTIME_DATABASE_URL этот пул использует те же credentials, но понижает SQL-роль после подключения. Для отдельного LOGIN задайте RUNTIME_DATABASE_URL и вручную выдайте ему membership sozbricks_runtime. Схему sozbricks не добавляйте в exposed schemas. В Render должны быть SUPABASE_URL и SUPABASE_PUBLISHABLE_KEY. CORS_ALLOWED_ORIGINS — точные origins веба. MAX_REQUEST_BODY_BYTES по умолчанию 65536. При 503 не очищайте пользовательские сохранения. При истечении сессии 410 нужна новая попытка; для уже завершённой попытки неизменный finish можно повторять.",
         spec["info"]["description"].as_str().unwrap()
     ));
+    for path in [
+        "/v1/admin/overview",
+        "/v1/admin/accounts",
+        "/v1/admin/rewards",
+    ] {
+        spec["paths"][path] = json!({"get":{"summary":"Read-only administrator data","security":[{"supabaseBearer":[]}],"responses":{"200":response("Administrator view",json!({"type":"object"})),"401":response("Authentication required",reference("Error")),"403":response("Player is not in ADMIN_PLAYER_IDS",reference("Error"))}}});
+    }
     Json(spec)
 }

@@ -225,7 +225,8 @@ pub async fn rewards(
         sqlx::query_scalar("SELECT activated_at::text FROM sozbricks.reward_campaign WHERE id")
             .fetch_one(&mut **tx)
             .await?;
+    let reconfirmation: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM sozbricks.wallet_bindings WHERE user_id=$1 AND reconfirmation_required)").bind(user).fetch_one(&mut **tx).await?;
     Ok(
-        json!({"items":items,"limit":limit,"offset":offset,"total_lamports":totals.get::<i64,_>("earned"),"paid_lamports":totals.get::<i64,_>("paid"),"pending_lamports":totals.get::<i64,_>("pending"),"historical_lamports":totals.get::<i64,_>("historical"),"wallet_address":address,"activated_at":activated,"solana_payments_enabled":false}),
+        json!({"items":items,"limit":limit,"offset":offset,"total_lamports":totals.get::<i64,_>("earned"),"paid_lamports":totals.get::<i64,_>("paid"),"pending_lamports":totals.get::<i64,_>("pending"),"historical_lamports":totals.get::<i64,_>("historical"),"wallet_address":address,"wallet_reconfirmation_required":reconfirmation,"activated_at":activated,"solana_payments_enabled":false}),
     )
 }

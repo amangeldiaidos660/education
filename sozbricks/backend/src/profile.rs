@@ -102,8 +102,43 @@ pub struct ProfilePatch {
 
 pub async fn begin(
     database: &Database,
-    user: &AuthUser,
+    user: &mut AuthUser,
 ) -> Result<Transaction<'static, Postgres>, GameError> {
+    let mut identity_tx = database
+        .pool()
+        .ok_or_else(GameError::unavailable)?
+        .begin()
+        .await?;
+    sqlx::query("SET LOCAL lock_timeout='3000'")
+        .execute(&mut *identity_tx)
+        .await?;
+    sqlx::query("SET LOCAL statement_timeout='5000'")
+        .execute(&mut *identity_tx)
+        .await?;
+    let resolved = sqlx::query_scalar::<_, Uuid>("SELECT sozbricks.resolve_player($1,$2,$3)")
+        .bind(user.id)
+        .bind(&user.google_subject)
+        .bind(&user.display_name)
+        .fetch_one(&mut *identity_tx)
+        .await;
+    user.id = match resolved {
+        Ok(id) => id,
+        Err(error)
+            if error
+                .as_database_error()
+                .and_then(|error| error.code())
+                .as_deref()
+                == Some("23503") =>
+        {
+            return Err(GameError::new(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "auth_database_mismatch",
+                "Verified Google identity is missing from this database",
+            ));
+        }
+        Err(error) => return Err(error.into()),
+    };
+    identity_tx.commit().await?;
     let mut tx = database
         .runtime_pool()
         .ok_or_else(GameError::unavailable)?
@@ -111,28 +146,11 @@ pub async fn begin(
         .await?;
     sqlx::query("SELECT set_config('app.user_id', $1, true), set_config('statement_timeout', '5000', true), set_config('lock_timeout', '3000', true)")
         .bind(user.id.to_string()).execute(&mut *tx).await?;
-    let inserted = sqlx::query("INSERT INTO sozbricks.profiles(user_id,display_name) VALUES($1,$2) ON CONFLICT(user_id) DO NOTHING")
-        .bind(user.id).bind(&user.display_name).execute(&mut *tx).await;
-    if let Err(error) = inserted {
-        if error
-            .as_database_error()
-            .and_then(|error| error.code())
-            .as_deref()
-            == Some("23503")
-        {
-            return Err(GameError::new(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "auth_database_mismatch",
-                "Verified user is missing from this database; check that Auth and DATABASE_URL use the same Supabase project",
-            ));
-        }
-        return Err(error.into());
-    }
     Ok(tx)
 }
 
 pub async fn ensure(database: &Database, user: &AuthUser) -> Result<(), GameError> {
-    begin(database, user).await?.commit().await?;
+    begin(database, &mut user.clone()).await?.commit().await?;
     Ok(())
 }
 

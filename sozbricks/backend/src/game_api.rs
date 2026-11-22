@@ -24,8 +24,8 @@ pub(crate) async fn context(
     state: &AppState,
     headers: &HeaderMap,
 ) -> Result<(AuthUser, Transaction<'static, Postgres>), GameError> {
-    let user = state.auth.authenticate(headers).await?;
-    let tx = profile::begin(&state.database, &user).await?;
+    let mut user = state.auth.authenticate(headers).await?;
+    let tx = profile::begin(&state.database, &mut user).await?;
     Ok((user, tx))
 }
 
@@ -51,7 +51,8 @@ pub(crate) async fn get_profile(
     headers: HeaderMap,
 ) -> Result<Json<Value>, GameError> {
     let (user, mut tx) = context(&state, &headers).await?;
-    let result = json!({"profile":profile::get(&mut tx,&user).await?,"progress":progress::summary(&mut tx,user.id).await?});
+    let mut result = json!({"profile":profile::get(&mut tx,&user).await?,"progress":progress::summary(&mut tx,user.id).await?});
+    result["profile"]["is_admin"] = json!(state.config.admin_player_ids.contains(&user.id));
     tx.commit().await?;
     Ok(Json(result))
 }
@@ -64,7 +65,8 @@ pub(crate) async fn patch_profile(
     let patch = body(input)?;
     let (user, mut tx) = context(&state, &headers).await?;
     profile::patch(&mut tx, user.id, patch).await?;
-    let result = json!({"profile":profile::get(&mut tx,&user).await?,"progress":progress::summary(&mut tx,user.id).await?});
+    let mut result = json!({"profile":profile::get(&mut tx,&user).await?,"progress":progress::summary(&mut tx,user.id).await?});
+    result["profile"]["is_admin"] = json!(state.config.admin_player_ids.contains(&user.id));
     tx.commit().await?;
     Ok(Json(result))
 }

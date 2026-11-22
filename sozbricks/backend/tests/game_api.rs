@@ -91,12 +91,17 @@ async fn account_progress_import_results_and_runtime_isolation() {
     .unwrap();
     let database = Database::new(config.database.as_ref());
     let pool = database.pool().unwrap();
-    sqlx::raw_sql("CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY);")
+    sqlx::raw_sql("CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE TABLE auth.identities(user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE, provider text, identity_data jsonb);")
         .execute(pool)
         .await
         .unwrap();
     database.prepare().await.unwrap();
-    let users = [Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4()];
+    let users = [
+        Uuid::new_v4(),
+        Uuid::new_v4(),
+        Uuid::new_v4(),
+        Uuid::new_v4(),
+    ];
     for id in &users[..2] {
         sqlx::query("INSERT INTO auth.users(id) VALUES($1)")
             .bind(id)
@@ -104,14 +109,24 @@ async fn account_progress_import_results_and_runtime_isolation() {
             .await
             .unwrap();
     }
+    for id in &users[..2] {
+        sqlx::query(
+            "INSERT INTO auth.identities VALUES($1,'google',jsonb_build_object('sub',$2::text))",
+        )
+        .bind(id)
+        .bind(format!("google-{id}"))
+        .execute(pool)
+        .await
+        .unwrap();
+    }
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let auth = Router::new().route("/auth/v1/user",get(move |headers:HeaderMap|async move {
         let index = match headers.get(header::AUTHORIZATION).and_then(|value|value.to_str().ok()) {
-            Some("Bearer alpha") => 0, Some("Bearer beta") => 1, Some("Bearer missing") => 2,
+            Some("Bearer alpha") => 0, Some("Bearer beta") => 1, Some("Bearer missing") => 2, Some("Bearer restored") => 3,
             _ => return (StatusCode::UNAUTHORIZED,Json(json!({}))),
         };
-        (StatusCode::OK,Json(json!({"id":users[index],"role":"authenticated","email":"player@example.com","app_metadata":{"providers":["google"]},"user_metadata":{"full_name":"Игрок"}})))
+        (StatusCode::OK,Json(json!({"identities":[{"provider":"google","user_id":users[index],"identity_data":{"sub":format!("google-{}",users[if index == 3 { 0 } else { index }])}}],"id":users[index],"role":"authenticated","email":"player@example.com","app_metadata":{"providers":["google"]},"user_metadata":{"full_name":"Игрок"}})))
     }));
     let worker = tokio::spawn(async move {
         axum::serve(listener, auth).await.unwrap();
@@ -121,6 +136,7 @@ async fn account_progress_import_results_and_runtime_isolation() {
         publishable_key: HeaderValue::from_static("sb_publishable_test"),
         timeout: Duration::from_secs(2),
     });
+    config.admin_player_ids = vec![users[0]];
     let router = app_with_database(config, database.clone());
 
     let (status, identity) = request(&router, "GET", "/v1/auth/me", "alpha", None).await;
@@ -510,6 +526,53 @@ async fn account_progress_import_results_and_runtime_isolation() {
     assert_eq!(binding["address"], address);
     let (_, binding) = request(&router, "GET", "/v1/wallet", "beta", None).await;
     assert!(binding["address"].is_null());
+    for path in [
+        "/v1/admin/overview",
+        "/v1/admin/accounts",
+        "/v1/admin/rewards",
+    ] {
+        assert_eq!(
+            request(&router, "GET", path, "alpha", None).await.0,
+            StatusCode::OK
+        );
+        assert_eq!(
+            request(&router, "GET", path, "beta", None).await.0,
+            StatusCode::FORBIDDEN
+        );
+    }
+    let (_, before) = request(&router, "GET", "/v1/profile", "alpha", None).await;
+    sqlx::query("DELETE FROM auth.users WHERE id=$1")
+        .bind(users[0])
+        .execute(pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO auth.users(id) VALUES($1)")
+        .bind(users[3])
+        .execute(pool)
+        .await
+        .unwrap();
+    sqlx::query(
+        "INSERT INTO auth.identities VALUES($1,'google',jsonb_build_object('sub',$2::text))",
+    )
+    .bind(users[3])
+    .bind(format!("google-{}", users[0]))
+    .execute(pool)
+    .await
+    .unwrap();
+    let (status, recovered) = request(&router, "GET", "/v1/profile", "restored", None).await;
+    assert_eq!(status, StatusCode::OK, "{recovered}");
+    assert_eq!(recovered["profile"]["user_id"], users[0].to_string());
+    assert_eq!(recovered["profile"]["is_admin"], true);
+    assert_eq!(recovered["progress"], before["progress"]);
+    let (_, rewards) = request(&router, "GET", "/v1/rewards", "restored", None).await;
+    assert_eq!(rewards["wallet_address"], address);
+    assert_eq!(rewards["wallet_reconfirmation_required"], true);
+    assert_eq!(
+        request(&router, "GET", "/v1/admin/accounts", "restored", None)
+            .await
+            .0,
+        StatusCode::OK
+    );
     worker.abort();
     let _ = worker.await;
     drop(router);

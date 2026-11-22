@@ -16,9 +16,9 @@ const persist = queries(payouts).find(sql => sql.startsWith('UPDATE sozbricks.re
 test('migrations preserve history; eligibility, RLS and durable payout leases', async () => {
   const db = new PGlite();
   try {
-    await db.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY);');
+    await db.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE TABLE auth.identities(user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,provider text,identity_data jsonb);');
     const files = (await readdir(migrationDir)).filter(f => f.endsWith('.sql')).sort();
-    for (const file of files.slice(0, -1)) await db.exec(await readFile(new URL(file, migrationDir), 'utf8'));
+    for (const file of files.filter(f => f < "202611110005")) await db.exec(await readFile(new URL(file, migrationDir), 'utf8'));
     const user = randomUUID(), other = randomUUID();
     for (const id of [user, other]) {
       await db.query('INSERT INTO auth.users VALUES($1)', [id]);
@@ -32,7 +32,7 @@ test('migrations preserve history; eligibility, RLS and durable payout leases', 
     }
     const old = await session(1, "now()-interval '1 day'");
     await db.query('INSERT INTO sozbricks.reward_ledger(user_id,level_id,session_id,amount_lamports) VALUES($1,1,$2,100000000)', [user,old]);
-    await db.exec(await readFile(new URL(files.at(-1), migrationDir), 'utf8'));
+    for (const file of files.filter(f => f >= '202611110005')) await db.exec(await readFile(new URL(file, migrationDir), 'utf8'));
     assert.equal((await db.query('SELECT payable FROM sozbricks.reward_ledger')).rows[0].payable, false);
     assert.equal((await db.query('SELECT * FROM sozbricks.reward_payouts')).rows.length, 0);
     await db.query('INSERT INTO sozbricks.level_progress(user_id,level_id,completed_at,first_win_session_id) VALUES($1,1,now(),$2)', [user,old]);

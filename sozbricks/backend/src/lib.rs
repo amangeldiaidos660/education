@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod auth;
 pub mod config;
 pub mod database;
@@ -60,6 +61,9 @@ pub fn app_with_database(config: Config, database: Database) -> Router {
         .route("/health/treasury", get(treasury::get_status))
         .route("/version", get(version))
         .route("/v1/auth/me", get(auth_me))
+        .route("/v1/admin/overview", get(admin::overview))
+        .route("/v1/admin/accounts", get(admin::accounts))
+        .route("/v1/admin/rewards", get(admin::rewards))
         .route(
             "/v1/profile",
             get(game_api::get_profile).patch(game_api::patch_profile),

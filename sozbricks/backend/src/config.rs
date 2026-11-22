@@ -33,6 +33,7 @@ pub struct AuthConfig {
 
 #[derive(Clone)]
 pub struct Config {
+    pub admin_player_ids: Vec<uuid::Uuid>,
     pub program_address: Option<solana_pubkey::Pubkey>,
     pub payments_enabled: bool,
     pub auth: Option<AuthConfig>,
@@ -77,6 +78,7 @@ impl Config {
             "SOLANA_TREASURY_ADDRESS",
             "SOLANA_REWARDS_PROGRAM_ID",
             "SOLANA_PAYMENTS_ENABLED",
+            "ADMIN_PLAYER_IDS",
         ] {
             match env::var(variable) {
                 Ok(value) => {
@@ -93,6 +95,23 @@ impl Config {
 
     pub fn from_values(values: &HashMap<String, String>) -> Result<Self, ConfigError> {
         let value = |key: &str| values.get(key).map(|v| v.trim());
+        let admin_player_ids = value("ADMIN_PLAYER_IDS")
+            .unwrap_or("")
+            .split(',')
+            .map(str::trim)
+            .filter(|id| !id.is_empty())
+            .map(|id| {
+                uuid::Uuid::parse_str(id)
+                    .ok()
+                    .filter(|id| !id.is_nil())
+                    .ok_or_else(|| {
+                        invalid(
+                            "ADMIN_PLAYER_IDS",
+                            "must contain comma-separated nonzero UUIDs",
+                        )
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         let program_address = value("SOLANA_REWARDS_PROGRAM_ID")
             .filter(|address| !address.is_empty())
             .map(|address| {
@@ -350,6 +369,7 @@ impl Config {
             ));
         }
         Ok(Self {
+            admin_player_ids,
             program_address,
             payments_enabled: if payments_enabled
                 && (treasury.is_none() || program_address.is_none())

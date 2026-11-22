@@ -2,7 +2,7 @@ import type { Level } from "./game/words";
 import type { Result, Save } from "./model";
 
 export const apiUrl = (process.env.EXPO_PUBLIC_API_URL ?? "https://sozbricks-api-tests.onrender.com").replace(/\/$/, "");
-export type Profile = { user_id: string; display_name: string; email: string; hero: Save["hero"] };
+export type Profile = { is_admin?: boolean; user_id: string; display_name: string; email: string; hero: Save["hero"] };
 export type Progress = { completed: number[]; best: Record<string, number>; earned_lamports: number };
 export type ServerLevel = Omit<Level, "reward"> & { reward_lamports: number; unlocked: boolean; rules_version: number };
 export type Session = { id: string; request_id: string; level_id: number; seed: number; word: string; speed: number;
@@ -11,7 +11,7 @@ export type Outcome = { won: boolean; score: number; collected_word: string; dur
 export type Finished = Outcome & { session_id: string; awarded_lamports: number; progress: Progress };
 export type History = { items: { session_id: string; level_id: number; word: string; score: number; won: boolean;
   duration_seconds: number; recorded_at: string }[]; imported_history: Result[] };
-export type Rewards = { total_lamports: number; solana_payments_enabled: boolean;
+export type Rewards = { wallet_reconfirmation_required?: boolean; total_lamports: number; solana_payments_enabled: boolean;
   paid_lamports?: number; pending_lamports?: number; historical_lamports?: number; wallet_address?: string | null; activated_at?: string | null;
   items: { id: string; level_id: number; amount_lamports: number; created_at: string; status: string;
     recipient?: string | null; signature?: string | null; explorer_url?: string | null; error_code?: string | null }[] };

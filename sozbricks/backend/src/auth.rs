@@ -15,12 +15,14 @@ pub struct AuthClient {
     client: Option<reqwest::Client>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct AuthUser {
     pub id: Uuid,
     pub email: Option<String>,
     pub display_name: String,
     pub provider: &'static str,
+    #[serde(skip)]
+    pub google_subject: String,
 }
 
 #[derive(Deserialize)]
@@ -34,6 +36,21 @@ struct SupabaseUser {
     app_metadata: AppMetadata,
     #[serde(default)]
     user_metadata: UserMetadata,
+    #[serde(default)]
+    identities: Vec<Identity>,
+}
+
+#[derive(Deserialize)]
+struct Identity {
+    provider: String,
+    user_id: Uuid,
+    identity_data: IdentityData,
+}
+
+#[derive(Deserialize)]
+struct IdentityData {
+    #[serde(default)]
+    sub: String,
 }
 
 #[derive(Default, Deserialize)]
@@ -144,6 +161,21 @@ impl AuthClient {
         {
             return Err(AuthError::Unauthorized);
         }
+        let identities: Vec<_> = user
+            .identities
+            .iter()
+            .filter(|identity| identity.provider == "google" && identity.user_id == user.id)
+            .collect();
+        if identities.len() != 1 {
+            return Err(AuthError::Unauthorized);
+        }
+        let google_subject = identities[0].identity_data.sub.clone();
+        if google_subject.is_empty()
+            || google_subject.len() > 255
+            || !google_subject.bytes().all(|byte| byte.is_ascii_graphic())
+        {
+            return Err(AuthError::Unauthorized);
+        }
         let display_name = user
             .user_metadata
             .full_name
@@ -158,6 +190,7 @@ impl AuthClient {
             email: user.email,
             display_name,
             provider: "google",
+            google_subject,
         })
     }
 }

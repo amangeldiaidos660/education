@@ -236,7 +236,7 @@ async fn tick(chain: &Chain, pool: &PgPool) -> Result<(), &'static str> {
     }
     chain.check(false).await?;
     let lease = Uuid::new_v4();
-    let row = sqlx::query("WITH candidate AS (SELECT p.reward_id FROM sozbricks.reward_payouts p WHERE p.status NOT IN ('paid','blocked') AND p.next_attempt_at<=now() AND (p.lease_until IS NULL OR p.lease_until<now()) AND (p.recipient IS NOT NULL OR EXISTS(SELECT 1 FROM sozbricks.wallet_bindings w WHERE w.user_id=p.user_id)) ORDER BY p.next_attempt_at,p.reward_id FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE sozbricks.reward_payouts p SET lease_id=$1,lease_until=now()+interval '2 minutes',recipient=coalesce(p.recipient,(SELECT address FROM sozbricks.wallet_bindings WHERE user_id=p.user_id)),status=CASE WHEN p.status='awaiting_wallet' THEN 'queued' ELSE p.status END FROM candidate c,sozbricks.reward_ledger r WHERE p.reward_id=c.reward_id AND r.id=p.reward_id AND r.payable RETURNING p.*,r.amount_lamports")
+    let row = sqlx::query("WITH candidate AS (SELECT p.reward_id FROM sozbricks.reward_payouts p WHERE p.status NOT IN ('paid','blocked') AND p.next_attempt_at<=now() AND (p.lease_until IS NULL OR p.lease_until<now()) AND (p.signature IS NOT NULL OR EXISTS(SELECT 1 FROM sozbricks.wallet_bindings w JOIN sozbricks.profiles a ON a.user_id=w.user_id WHERE w.user_id=p.user_id AND NOT w.reconfirmation_required AND a.auth_user_id IS NOT NULL)) ORDER BY p.next_attempt_at,p.reward_id FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE sozbricks.reward_payouts p SET lease_id=$1,lease_until=now()+interval '2 minutes',recipient=coalesce(p.recipient,(SELECT address FROM sozbricks.wallet_bindings WHERE user_id=p.user_id)),status=CASE WHEN p.status='awaiting_wallet' THEN 'queued' ELSE p.status END FROM candidate c,sozbricks.reward_ledger r WHERE p.reward_id=c.reward_id AND r.id=p.reward_id AND r.payable RETURNING p.*,r.amount_lamports")
         .bind(lease).fetch_optional(pool).await.map_err(|_| "queue_unavailable")?;
     let Some(row) = row else {
         return Ok(());
@@ -317,6 +317,11 @@ async fn process(
         }
     }
     if signature.is_none() {
+        let confirmed: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM sozbricks.wallet_bindings w JOIN sozbricks.profiles p ON p.user_id=w.user_id WHERE w.user_id=$1 AND NOT w.reconfirmation_required AND p.auth_user_id IS NOT NULL)")
+            .bind(row.get::<Uuid,_>("user_id")).fetch_one(pool).await.map_err(|_| "queue_unavailable")?;
+        if !confirmed {
+            return Err("wallet_reverification_required");
+        }
         let (sig, wire, height) = chain
             .signed(chain.payout_instruction(reward, recipient, amount))
             .await?;

@@ -36,6 +36,8 @@ export function WalletPanel() {
   return <Card style={{ gap: 14 }}><Txt size={23} weight="extra">Кошелёк игрока</Txt>
     <Txt selectable color={address ? c.accent : c.muted}>{address ?? "Личный кошелёк ещё не привязан"}</Txt>
     <Txt size={12} color={c.muted}>Подпишите сообщение для подтверждения владения. Награды выплачиваются в тестовых SOL сети Devnet.</Txt>
+    {syncView?.disk.data?.rewards.wallet_reconfirmation_required && <Txt color={c.goldText}>Аккаунт восстановлен. Прежний адрес сохранён. Подключите кошелёк и снова подпишите сообщение для возобновления новых выплат.</Txt>}
+    {Platform.OS === "android" && <Txt size={12} color={c.muted}>Для подключения на телефоне используйте Solflare или другой кошелёк с Mobile Wallet Adapter. Если адрес уже привязан через веб, повторное подключение для игры в APK не нужно.</Txt>}
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
       <Button small disabled={busy || nativeGo} onPress={() => { void connect("phantom"); }}>{busy ? "Ожидаем кошелёк…" : Platform.OS === "web" ? "Подключить Phantom" : "Подключить кошелёк"}</Button>
       {Platform.OS === "web" && <Button small secondary disabled={busy} onPress={() => { void connect("solflare"); }}>Подключить Solflare</Button>}

@@ -17,6 +17,7 @@ export default function Profile() {
     <Txt size={12} color={c.muted}>{account ? "Аккаунт Google · Прогресс сохраняется на сервере" : "Гостевой профиль · Прогресс хранится на этом устройстве"}</Txt>
     <AccountPanel />
     <WalletPanel />
+    {syncView?.disk.data?.profile.is_admin && <Button secondary onPress={() => router.push("/admin")}>Админпанель</Button>}
     <View style={{ flexDirection: wide ? "row" : "column", gap: 22 }}>
       <Card style={{ flex: 1, gap: 16, alignItems: "center" }}>
         <Eyebrow>Исследователь слов</Eyebrow>

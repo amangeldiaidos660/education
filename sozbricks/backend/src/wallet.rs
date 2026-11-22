@@ -121,7 +121,7 @@ pub(crate) async fn verify(
         &row.get::<String, _>("message"),
         &request.signature,
     )?;
-    sqlx::query("INSERT INTO sozbricks.wallet_bindings(user_id,address) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET address=excluded.address,verified_at=now()")
+    sqlx::query("INSERT INTO sozbricks.wallet_bindings(user_id,address) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET address=excluded.address,verified_at=now(),reconfirmation_required=false")
         .bind(user.id).bind(&address).execute(&mut *tx).await?;
     sqlx::query("UPDATE sozbricks.wallet_challenges SET consumed=true WHERE user_id=$1")
         .bind(user.id)

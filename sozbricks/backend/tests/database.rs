@@ -99,7 +99,7 @@ async fn postgres_schema_and_readiness_contract() {
     assert!(matches!(host, "127.0.0.1" | "localhost"));
     let database = Database::new(config.database.as_ref());
     let pool = database.pool().unwrap();
-    sqlx::raw_sql("CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE ROLE anon NOLOGIN; CREATE ROLE ci_reader NOLOGIN;").execute(pool).await.unwrap();
+    sqlx::raw_sql("CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE TABLE auth.identities(user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE, provider text, identity_data jsonb); CREATE ROLE anon NOLOGIN; CREATE ROLE ci_reader NOLOGIN;").execute(pool).await.unwrap();
     assert!(database.readiness().await.is_err());
     database.prepare().await.unwrap();
     database.prepare().await.unwrap();
